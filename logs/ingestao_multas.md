@@ -83,3 +83,54 @@ Motor: Python 3.11 + DuckDB 2.0.1 (`import duckdb`) — SQL embutido no pipeline
 - **junho/2024**: exportar do RAR original (`infraçoes2024_06.csv`) → zip < 100 MB → Drive (`Multas_Part` ou pasta nova) → rodar `scripts/02_extrair_unificar.py 2024` de novo (sobrescreve o arquivo do ano).
 - **Etapa 02 (tratamento/padronização)**: `dados_tratados/` com base analítica + base modelável (espelhando `Projeto_PRF` do FAP-2026).
 - Encoding/colunas do tratamento: seguir `sql/modulo03.sql` (`read_csv(..., sample_size=-1, all_varchar=true)`, `COPY` utf-8 com `;`) e `src/modulo04_*` (dicionário, nulos → `IGNORADO`, etc.).
+
+---
+
+# Etapa 03 — Normalização / Padronização (2007–2025)
+
+Data: 2026-11-24
+Script: `scripts/03_normalizar.py` (DuckDB embutido; fonte `.csv` ou `.csv.gz`)
+Resultado: **os 19 CSVs de `dados_brutos/` estão padronizados com um schema único**.
+
+## O que foi padronizado
+
+1. **Schema canônico de 25 colunas** (união das três eras), ordem fixa, nomes snake_case:
+   `numero_auto, data_infracao, hora, tip_abordagem, ind_assinou_auto, ind_veiculo_estrangeiro,
+   sentido_trafego, uf_placa, uf_infracao, num_br_infracao, num_km_infracao, nom_municipio,
+   cod_infracao, descricao_abreviada, enquadramento, data_inicio_vigencia, data_fim_vigencia,
+   med_realizada, med_considerada, exc_verificado, especie, nome_veiculo_marca,
+   nom_modelo_veiculo, tipo_veiculo, qtd_infracoes`
+2. **Formato de arquivo único**: delimitador `;`, UTF-8, LF, sem BOM, aspas mínimas (antes: `,` em 2007–2018 e `;` em 2019–2025).
+3. **Datas em AAAA-MM-DD** (já era o padrão de fato nas três eras — o cabeçalho "DD/MM/AAAA" de 2019+ é enganoso; conversão DD/MM→ISO mantida por segurança).
+4. **`hora` em HH:MM:SS**: 2015–2018 já tinham `HH:MM:SS`; 2019–2025 tinham só o dígito da hora (0–23) → `HH:00:00`.
+5. **TRIM** em todos os campos.
+6. **Tokens de ausência → vazio (NULL)**: `NA`, `N/I`, `N/A` e vazio. Casos principais: `data_fim_vigencia` (100% `NA` em 2017 e 2020–2025), `assinatura do auto`/`medicao infracao` (1,4 mi em 2024; 8,2 mi em 2025), `uf placa`, marca/modelo, etc.
+
+## Mapeamento de colunas (origem → canônica)
+
+| Era | Colunas | Observação |
+|---|---|---|
+| 2007–2014 (20) | snake_case (`dat_infracao`, `ind_sentido_trafego`…) | sem `numero_auto`, `hora`, `cod_infracao`, `tipo_veiculo`, `qtd_infracoes` → vazios |
+| 2015–2016 (21) | + `hora` | |
+| 2017–2018 (22) | + `cod_infracao` | `data_fim_vigencia` 100% `NA` (só 2017) |
+| 2019 (22) | pt-BR (`Número do Auto`, `Data da Infração (DD/MM/AAAA)`…) | sem `nom_modelo_veiculo`, `tipo_veiculo`, `qtd_infracoes` |
+| 2020 (23) | + `Qtd Infrações` | jan/2020 com `UF Placa` extra (resolvido na ingestão) |
+| 2021 (22) | sem `UF Placa` | |
+| 2022–2025 (25) | + `Descrição Tipo Veículo` + `Descrição Modelo Veiculo` | schema completo |
+
+## Validação (obrigatória por ano, dentro do script)
+
+- contagem de entrada == contagem de saída (após `COPY`)
+- `data_infracao` 100% ISO e `hora` 100% `HH:MM:SS` no arquivo normalizado
+- ordem das linhas preservada (verificada na ponta: 1ª/última linha de 2025 batem com o original)
+
+**Validação final (19/19 OK):** header idêntico em todos os anos (md5 `8fe1a7bb…`), contagem física == DuckDB == contagem da fase 1 em todos os anos, **total 92.215.588 registros**.
+
+## Disco (etapa de compactação)
+
+- Disk só tinha ~1,2 GB livres; os 18 arquivos maiores que ~1 GB foram **gzipados** (17,6 GB → 2,6 GB, 6,8×), a normalização leu direto do `.csv.gz` e reescreveu o CSV normalizado (o `.gz` só é apagado após a validação). Espaço livre chegou a 17 GB durante o processo.
+
+## Pendências (mantidas)
+
+- **junho/2024 ausente** (2024 tem 11 meses) — reexportar do RAR e subir < 100 MB; depois `02_extrair_unificar.py 2024` e `03_normalizar.py 2024`.
+- Próxima: etapa de tratamento → `dados_tratados/` (base analítica + modelável).
