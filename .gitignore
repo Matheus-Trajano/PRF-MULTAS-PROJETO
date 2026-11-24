@@ -1,0 +1,14 @@
+# Dados grandes (baixados/gerados) — fora do Git
+google_drive/
+dados_brutos/*.csv
+*.duckdb
+*.wal
+
+# Ambiente
+.venv/
+node_modules/
+package.json
+package-lock.json
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
