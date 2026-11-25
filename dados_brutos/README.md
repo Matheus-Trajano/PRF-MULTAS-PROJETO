@@ -3,28 +3,35 @@
 **19 CSVs unificados** (um por ano), **normalizados** com schema canônico único de 25 colunas.
 Total: **92.215.588 registros** (≈ 17,9 GB em CSV; **2,26 GB comprimidos**).
 
-> ⚠️ Os `.csv` têm de 319 MB a 2,26 GB — **acima do limite de 100 MB por arquivo do Git**.
-> Por isso os dados ficam publicados como `.csv.gz` no **GitHub Release**
-> [`dados-brutos`](https://github.com/Matheus-Trajano/PRF-MULTAS-PROJETO/releases/tag/dados-brutos);
-> este diretório versiona apenas este README, os scripts (`scripts/`) e o log (`logs/`).
+> ⚠️ Os `.csv` têm de 319 MB a 2,26 GB — **acima do limite de 100 MB por arquivo do GitHub**.
+> Por isso este diretório guarda os dados **compactados (gzip)** e os maiores que 95 MB
+> **particionados em volumes** (`.aa`, `.ab`, …). Remontagem, validação e uso abaixo.
 
-## Download
+## Download e remontagem
 
 ```bash
-# com gh CLI (todos os arquivos + checksums)
-gh release download dados-brutos -R Matheus-Trajano/PRF-MULTAS-PROJETO
+# 1) baixar os arquivos de dados_brutos/ (sparse-checkout do repo, ou cada parte via raw):
+#    https://github.com/Matheus-Trajano/PRF-MULTAS-PROJETO/raw/arena/1be68652-prf-multas-projeto/dados_brutos/<arquivo>
 
-# ou um arquivo específico via URL
-curl -LO https://github.com/Matheus-Trajano/PRF-MULTAS-PROJETO/releases/download/dados-brutos/infracoes_2007.csv.gz
-gunzip infracoes_2007.csv.gz   # gera infracoes_2007.csv
+# 2) anos particionados (2015–2025): remontar o .gz
+cat infracoes_2025.csv.gz.* > infracoes_2025.csv.gz
+
+# 3) validar integridade (SHA-256 dos .gz completos)
+sha256sum -c SHA256SUMS.txt
+
+# 4) descompactar -> infracoes_2025.csv   (2007–2014 já vêm como .gz único, sem remontagem)
+gunzip infracoes_2025.csv.gz
 ```
+
+O DuckDB lê direto do comprimido, sem descompactar:
+`SELECT * FROM read_csv('infracoes_2007.csv.gz', header=true, delim=';', all_varchar=true)`.
 
 O DuckDB lê direto do comprimido, sem descompactar:
 `SELECT * FROM read_csv('infracoes_2007.csv.gz', header=true, delim=';', all_varchar=true)`.
 
 ## Arquivos
 
-| Ano | Registros | CSV | `.csv.gz` (release) |
+| Ano | Registros | CSV | `.csv.gz` no Git |
 |-----|-----------|-----|---------------------|
 | 2007 | 1.855.460 | 319 MB | 30,5 MB |
 | 2008 | 2.432.797 | 435 MB | 43,7 MB |
@@ -47,7 +54,7 @@ O DuckDB lê direto do comprimido, sem descompactar:
 | 2025 | 10.204.474 | 2.245 MB | 329,9 MB |
 | **Total** | **92.215.588** | **≈ 17,9 GB** | **2,26 GB** |
 
-Integridade: `SHA256SUMS.txt` (mesmo release). Validado por ano: contagem física de linhas ==
+Integridade: `SHA256SUMS.txt` (este diretório). Validado por ano: contagem física de linhas ==
 `count(*)` do DuckDB == tabela acima; cabeçalho idêntico nos 19 anos (md5 `8fe1a7bb…`).
 
 ## Schema canônico (25 colunas, delim `;`, UTF-8, datas ISO `AAAA-MM-DD`, hora `HH:MM:SS`)
