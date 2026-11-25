@@ -183,3 +183,30 @@ Resultado: **os 19 CSVs de `dados_brutos/` estão padronizados com um schema ún
   virou `NULL` — 108 valores inválidos de `UF_PLACA` (3.941.160 células, topos
   `'-1`=2.553.720 e `-1`=1.361.628) e as 2 sentinelas de `ESPECIE`
   (`'-1`=4.804.523 e `-1`=3.027.027 = 7.831.550) — totais batem com o resumo §3.
+
+
+# Fase 3 — enriquecimento, agregados e dashboard (2026-11-25)
+
+- **Etapa 0** — regeneração da base analítica (`04_tratar.py`, 19 anos, após reset dos
+  parquets): **OK 19 anos, 92.215.588 linhas, 3942s** (04 + `--resumo`).
+- **Etapa A** — `scripts/05_enriquecer.py`: 28→37 col em **150s**; in==out validado
+  ano a ano; saneamentos KM>5000→NULL e BR∉1..999→NULL; log `_enriquecimento.jsonl`.
+- **Etapa B** — `scripts/06_agregar.py`: **12 agregados, 20s, soma(qtd)=92.215.588 nos 12**.
+  Ajustes feitos no caminho: (1) sem `CREATE TEMP TABLE` — o spill do materialize
+  estourou o disco livre (8,8 GB) → leitura direta dos Parquets por agregado;
+  (2) `hora_diaria` agrupada por `hour(HORA)` (0–23) em vez do `TIME` completo
+  (14 M → 98,6 → 1,94 M linhas com UF); (3) `UF_INFRACAO` adicionada aos 9 agregados
+  que não tinham (filtros globais da Etapa D).
+- **Etapa C** — `docs/catalogo_graficos.md` (variável→gráfico→métrica→ordenação→drill→arquivo).
+- **Etapa D** — `docs/especificacao_interacoes.md` (cascata+breadcrumb, filtros globais,
+  NÃO INFORMADO, top10 reativo, consumo dos agregados).
+- **Etapa E** — `notebooks/05_eda_plotly.ipynb` via builder `notebooks/_build_eda.py`
+  (nbclient: **8 células code, 0 erros**): 12 agregados, filtros ANO/UF, 6 KPIs,
+  **20 figuras Plotly** em 4 seções — temporal (cascata ano→mês→semana→dia com
+  breadcrumb, heatmap ano×mês, dia da semana, fim de semana, hora, turno),
+  geográfica (top10 mun, UF, matriz placa×infração, treemap UF→município, top BR),
+  infração (top10, natureza, velocidade, treemap enquadramento, abordagem),
+  veículo (espécie, tipo, espécie×tipo, marcas). Célula final:
+  `VALIDACAO_ETAPA_E_OK — 12 agregados, soma = 92.215.588, 19 anos, 12 meses`.
+- Dependências novas no `.venv`: `plotly`, `ipywidgets`, `pandas`, `numpy`,
+  `nbformat`, `nbclient`, `ipykernel` (hoje em `requirements.txt`).
