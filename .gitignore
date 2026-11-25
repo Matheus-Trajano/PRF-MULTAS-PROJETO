@@ -14,3 +14,11 @@ __pycache__/
 .ipynb_checkpoints/
 dados_brutos/_ddb_tmp/
 dados_brutos/*.norm.csv
+
+# Remontagem local 2015-2025 (o Git versiona as partes .aa/.ab)
+dados_brutos/infracoes_*.csv.gz
+
+# Base analítica (gerada por scripts/04_tratar.py)
+dados_tratados/base_analitica/
+dados_tratados/_ddb_tmp/
+dados_tratados/_validacao.jsonl
