@@ -56,7 +56,7 @@ Motor: Python 3.11 + DuckDB 2.0.1 (`import duckdb`) — SQL embutido no pipeline
 | 2021 | 2 zips, 12 meses | 5.241.299 | 22 | `;` | latin-1* | infracoes_2021.csv (1.172 MB) |
 | 2022 | 2 zips, 12 meses | 4.135.523 | 25 | `;` | latin-1* | infracoes_2022.csv (938 MB) |
 | 2023 | 3 zips, 12 meses | 5.946.483 | 25 | `;` | utf-8 | infracoes_2023.csv (1.559 MB) |
-| **2024** | 4 zips, **11 meses** | 8.710.022 | 25 | `;` | utf-8 | infracoes_2024.csv (2.263 MB) — **INCOMPLETO** |
+| **2024** | 4 zips, **11 meses** | 8.710.022 | 25 | `;` | utf-8 | infracoes_2024.csv (2.263 MB) — junho **não existe na base** |
 | 2025 | 4 zips, 12 meses | 10.204.474 | 25 | `;` | utf-8 | infracoes_2025.csv (2.588 MB) |
 | **TOTAL** | | **92.215.588** | — | — | — | **~19 GB** |
 
@@ -75,12 +75,12 @@ Motor: Python 3.11 + DuckDB 2.0.1 (`import duckdb`) — SQL embutido no pipeline
 2. **Quebra de encoding ao vivo**: `latin-1` em `2020_12`, `2021_12`, `2022_07`, `2017` e quase tudo 2020–2021; utf-8 nos anos 2018, 2019, 2023–2025 (com BOM). Codificação por arquivo já resolvida na ingestão.
 3. **1 linha corrompida** em `infraçoes2024_12b.csv` (aspas ímpares) — corrigida por `sanear_aspas`; vale conferir se o modelo/valor corrigido faz sentido no tratamento.
 4. **2020 é `union_by_name`**: janeiro tem colunas na ordem diferente + `UF Placa` → em tratamento, alinhar por nome e preencher `uf_placa` ausente com nulo.
-5. **junho/2024 está ausente** (11 meses em 2024) — usuário precisa exportar o mês de junho/2024 do RAR e subir como zip < 100 MB antes do tratamento.
+5. **junho/2024 não existe na base** (confirmado pelo usuário em 2026-11-25 — considerar inexistente, não pendência). 2024 é completo com 11 meses; `scripts/02_extrair_unificar.py` tem `MESES_INEXISTENTES = {2024: [6]}` para não sinalizar o ano como incompleto.
 6. Colunas-chave do tratamento (referência `Projeto_PRF/sql/modulo03.sql`): `uf`, `municipio`, `br`, `km`, `data_infracao`, `data_hora_infracao`, `natureza`, `especie`, `grau_gravidade`, `orgao`, `enquadramento`, `valor_multa`, `valor_autuacao`, `qtd_ait`, `qtd_ait_gravada`, `tipo_veiculo`, `marca_veiculo`, `modelo_veiculo`, `cnpj_orgao`, `placa`, `uf_placa`, `chassi`, `restricao`, `uf_frota`, `infrator` (ver dicionário do projeto de referência).
 7. `all_varchar=true` na ingestão: todos os campos entram como string; tipagem/cast é responsabilidade da etapa 02 (tratamento).
 
 ## Pendências / próximos passos
-- **junho/2024**: exportar do RAR original (`infraçoes2024_06.csv`) → zip < 100 MB → Drive (`Multas_Part` ou pasta nova) → rodar `scripts/02_extrair_unificar.py 2024` de novo (sobrescreve o arquivo do ano).
+- ~~junho/2024~~: **não existe na base** (inexistente, não é pendência) — 2024 completo com 11 meses.
 - **Etapa 02 (tratamento/padronização)**: `dados_tratados/` com base analítica + base modelável (espelhando `Projeto_PRF` do FAP-2026).
 - Encoding/colunas do tratamento: seguir `sql/modulo03.sql` (`read_csv(..., sample_size=-1, all_varchar=true)`, `COPY` utf-8 com `;`) e `src/modulo04_*` (dicionário, nulos → `IGNORADO`, etc.).
 
@@ -132,5 +132,5 @@ Resultado: **os 19 CSVs de `dados_brutos/` estão padronizados com um schema ún
 
 ## Pendências (mantidas)
 
-- **junho/2024 ausente** (2024 tem 11 meses) — reexportar do RAR e subir < 100 MB; depois `02_extrair_unificar.py 2024` e `03_normalizar.py 2024`.
+- ~~junho/2024~~: **não existe na base** — 2024 já normalizado com os 11 meses existentes.
 - Próxima: etapa de tratamento → `dados_tratados/` (base analítica + modelável).

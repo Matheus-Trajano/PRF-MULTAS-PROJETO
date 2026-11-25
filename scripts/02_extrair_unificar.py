@@ -6,6 +6,8 @@ arquivo por ano em dados_brutos/infracoes_<ANO>.csv.
 
 Regras:
   - Ordem cronológica de meses (inclui sufixos 12a/12b de 2024).
+  - MESES_INEXISTENTES: meses que não existem na fonte (ex.: jun/2024)
+    são ignorados e não sinalizam o ano como incompleto.
   - Detecção de encoding por arquivo: utf-8 | cp1252 | latin-1 -> UTF-8.
   - Cabeçalho idêntico dentro do ano (assert), exceto 2020:
     jan/2020 tem coluna extra ("UF Placa", 23 vs 22 colunas) ->
@@ -37,6 +39,12 @@ MESES = {"jan": 1, "fev": 2, "mar": 3, "abr": 4, "mai": 5, "jun": 6,
 
 DELIM = {2018: ","}
 DELIM_PADRAO = ";"
+
+# Meses que NÃO EXISTEM na base original (confirmado pelo usuário) — não são
+# pendência de ingestão e não devem sinalizar o ano como incompleto.
+MESES_INEXISTENTES: dict[int, list[int]] = {
+    2024: [6],   # junho/2024 não existe na fonte
+}
 
 
 # ---------- codecs ----------
@@ -281,10 +289,15 @@ def processar_ano(ano: str) -> dict:
         raise SystemExit(f"[ERRO] nenhum mês encontrado para {ano} em google_drive/*.zip")
 
     presentes = sorted({m for (m, _), _, _ in itens})
-    faltando = [m for m in range(1, 13) if m not in presentes]
+    inexistentes = [m for m in MESES_INEXISTENTES.get(int(ano), []) if m not in presentes]
+    esperados = [m for m in range(1, 13) if m not in inexistentes]
+    faltando = [m for m in esperados if m not in presentes]
     if faltando:
         print(f"  [AVISO {ano}] MESES AUSENTES: {faltando} "
               f"(presentes: {[f'{m:02d}{s}' for (m, s), _, _ in itens]})")
+    if inexistentes:
+        print(f"  [INFO {ano}] mês(es) inexistente(s) na base (ignorado): "
+              f"{inexistentes}")
 
     tmp_dir = TMP / ano
     tmp_dir.mkdir(parents=True, exist_ok=True)
