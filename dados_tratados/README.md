@@ -9,6 +9,7 @@ Saída de [`scripts/04_tratar.py`](../scripts/04_tratar.py): le os 19 CSV normal
 |---------|----------|
 | `base_analitica/infracoes_YYYY.parquet` | 19 Parquets (ZSTD), **92.215.588 linhas × 28 colunas** — 1 por ano |
 | `resumo_colunas.md` | Estatísticas por coluna, nulos por era, anomalias corrigidas e **resumo das colunas que podem/precisam ser resumidas** |
+| `valores_rejeitados.md` | **Lista detalhada** do que foi considerado nulo/incorreto (regras + valores brutos com contagem por ano) |
 
 Os `.parquet` são dados grandes → fora do Git (`.gitignore`); regeneração:
 `.venv/bin/python scripts/04_tratar.py`.
@@ -37,7 +38,7 @@ import pandas as pd; pd.read_parquet('dados_tratados/base_analitica/infracoes_20
 
 | Coluna | Tipo | Regra |
 |--------|------|-------|
-| `MES` | SMALLINT | mês de `DATA_INFRACAO` (1–12) |
+| `MES` | VARCHAR | **nome do mês** de `DATA_INFRACAO`: JANEIRO…DEZEMBRO (acento→ASCII: `MARCO`) |
 | `ANO` | SMALLINT | ano de `DATA_INFRACAO` |
 | `QUARTIL` | VARCHAR | `Q1`=jan-mar · `Q2`=abr-jun · `Q3`=jul-set · `Q4`=out-dez |
 

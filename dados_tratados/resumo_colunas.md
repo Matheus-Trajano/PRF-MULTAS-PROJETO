@@ -1,8 +1,8 @@
 # resumo_colunas — base analítica (dados_tratados)
 
-- **Linhas:** 92,215,588 · **Colunas:** 28 · Gerado por `scripts/04_tratar.py` em 2026-11-25 14:27.
+- **Linhas:** 92,215,588 · **Colunas:** 28 · Gerado por `scripts/04_tratar.py` em 2026-11-25 14:43.
 - **Fonte:** `dados_brutos/infracoes_2007..2025.csv.gz` (19 arquivos, schema canônico 25 col).
-- Colunas de texto: sentinela → `NULL`; `TRIM` + `MAIÚSCULAS` + acentos→ASCII. Colunas derivadas: `MES`, `ANO`, `QUARTIL` (Q1=jan-mar, Q2=abr-jun, Q3=jul-set, Q4=out-dez).
+- Colunas de texto: sentinela → `NULL`; `TRIM` + `MAIÚSCULAS` + acentos→ASCII. Colunas derivadas: `MES` (nome do mês: JANEIRO…DEZEMBRO), `ANO`, `QUARTIL` (Q1=jan-mar, Q2=abr-jun, Q3=jul-set, Q4=out-dez).
 
 ## 1. Estatísticas globais
 
@@ -33,7 +33,7 @@
 | 23 | `NOM_MODELO_VEICULO` | VARCHAR | 18,745,058 | 20.33% | 137,695 |
 | 24 | `TIPO_VEICULO` | VARCHAR | 63,247,844 | 68.59% | 89 |
 | 25 | `QTD_INFRACOES` | BIGINT | 52,795,250 | 57.25% | 2 |
-| 26 | `MES` | SMALLINT | 0 | 0.00% | 12 |
+| 26 | `MES` | VARCHAR | 0 | 0.00% | 12 |
 | 27 | `ANO` | SMALLINT | 0 | 0.00% | 19 |
 | 28 | `QUARTIL` | VARCHAR | 0 | 0.00% | 4 |
 

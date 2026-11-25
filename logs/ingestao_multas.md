@@ -170,3 +170,16 @@ Resultado: **os 19 CSVs de `dados_brutos/` estão padronizados com um schema ún
   **resumo das colunas que podem/precisam ser resumidas** (códigos vs textos, marcas/modelos,
   município, hora; lacunas de era documentadas).
 - Retomadas possíveis: `04_tratar.py 2020 2021 …` (parcial) e `04_tratar.py --resumo` (fase B).
+
+## Ajuste — MES com nome do mês (2026-11-25)
+
+- `MES` passou de SMALLINT (1–12) para **VARCHAR com o nome do mês**
+  (JANEIRO…DEZEMBRO; acento→ASCII, coerente com a regra da base: `MARCO`).
+  `QUARTIL` continua derivado do mês numérico interno (Q1–Q4 de 3 meses).
+- Regeneração: migração dos 19 parquets em 74 s (mesma contagem; `04_tratar.py`
+  atualizado — reproduz o mesmo resultado) + `--resumo` revalidou 92.215.588
+  (0 `MES` fora da regra, 0 `QUARTIL` divergente).
+- `dados_tratados/valores_rejeitados.md`: varredura da fonte listando **tudo** que
+  virou `NULL` — 108 valores inválidos de `UF_PLACA` (3.941.160 células, topos
+  `'-1`=2.553.720 e `-1`=1.361.628) e as 2 sentinelas de `ESPECIE`
+  (`'-1`=4.804.523 e `-1`=3.027.027 = 7.831.550) — totais batem com o resumo §3.

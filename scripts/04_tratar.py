@@ -18,7 +18,7 @@ Tipos:
   COD_INFRACAO  VARCHAR (e' codigo, nao quantidade)
   UF_*          VARCHAR (apenas 27 UFs validas; resto -> NULL)
 Derivadas (a partir de DATA_INFRACAO):
-  MES     SMALLINT 1..12
+  MES     VARCHAR nome do mes (JANEIRO..DEZEMBRO; acento->ASCII: MARCO)
   ANO     SMALLINT (ano da infracao)
   QUARTIL Q1=jan-mar | Q2=abr-jun | Q3=jul-set | Q4=out-dez
 Linhas: NENHUMA removida (92.215.588 entram e saem).
@@ -130,19 +130,32 @@ COLS_SELECT = f"""
 SQL_TRATAR = f"""
 SELECT
     {COLS_SELECT},
-    MES,
+    CASE MES_NUM
+        WHEN 1  THEN 'JANEIRO'
+        WHEN 2  THEN 'FEVEREIRO'
+        WHEN 3  THEN 'MARCO'
+        WHEN 4  THEN 'ABRIL'
+        WHEN 5  THEN 'MAIO'
+        WHEN 6  THEN 'JUNHO'
+        WHEN 7  THEN 'JULHO'
+        WHEN 8  THEN 'AGOSTO'
+        WHEN 9  THEN 'SETEMBRO'
+        WHEN 10 THEN 'OUTUBRO'
+        WHEN 11 THEN 'NOVEMBRO'
+        WHEN 12 THEN 'DEZEMBRO'
+    END AS MES,
     ANO,
     CASE
-        WHEN MES IS NULL THEN NULL
-        WHEN MES <= 3  THEN 'Q1'
-        WHEN MES <= 6  THEN 'Q2'
-        WHEN MES <= 9  THEN 'Q3'
+        WHEN MES_NUM IS NULL THEN NULL
+        WHEN MES_NUM <= 3  THEN 'Q1'
+        WHEN MES_NUM <= 6  THEN 'Q2'
+        WHEN MES_NUM <= 9  THEN 'Q3'
         ELSE 'Q4'
     END AS QUARTIL
 FROM (
     SELECT
         *,
-        EXTRACT(MONTH FROM {dt('data_infracao')})::SMALLINT AS MES,
+        EXTRACT(MONTH FROM {dt('data_infracao')})::SMALLINT AS MES_NUM,
         EXTRACT(YEAR  FROM {dt('data_infracao')})::SMALLINT AS ANO
     FROM stage
 )
@@ -318,7 +331,7 @@ def fase_b(con: duckdb.DuckDBPyConnection, validacoes: list[dict]) -> Path:
         f"Gerado por `scripts/04_tratar.py` em {time.strftime('%Y-%m-%d %H:%M')}.",
         "- **Fonte:** `dados_brutos/infracoes_2007..2025.csv.gz` (19 arquivos, schema canônico 25 col).",
         "- Colunas de texto: sentinela → `NULL`; `TRIM` + `MAIÚSCULAS` + acentos→ASCII. "
-        "Colunas derivadas: `MES`, `ANO`, `QUARTIL` (Q1=jan-mar, Q2=abr-jun, Q3=jul-set, Q4=out-dez).",
+        "Colunas derivadas: `MES` (nome do mês: JANEIRO…DEZEMBRO), `ANO`, `QUARTIL` (Q1=jan-mar, Q2=abr-jun, Q3=jul-set, Q4=out-dez).",
         "",
         "## 1. Estatísticas globais",
         "",
