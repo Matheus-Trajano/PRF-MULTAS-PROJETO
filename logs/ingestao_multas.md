@@ -150,3 +150,36 @@ Resultado: **os 19 CSVs de `dados_brutos/` estão padronizados com um schema ún
   (`.aa`/`.ab`/… para 2015–2025) + `SHA256SUMS.txt`; upload de assets de Release é bloqueado
   no sandbox (`uploads.github.com` fora da lista de egress), então o Release `dados-brutos`
   existe apenas como âncora com notas apontando para esta pasta.
+
+---
+
+# Fase 2 — tratamento e base analítica (2026-11-25)
+
+- `scripts/04_tratar.py`: le os 19 `.csv.gz` (1 passada de gzip/ano via tabela TEMP `stage`;
+  fallback `parallel=false` para o 2023) e grava `dados_tratados/base_analitica/infracoes_YYYY.parquet`
+  (ZSTD, **1,4 GB** total para 17,9 GB de CSV).
+- Padronização: colunas em **MAIÚSCULOS** (28 = 25 originais + `MES`, `ANO`, `QUARTIL`);
+  texto → sentinela (`'-1`,`-1`,`NA`,…) `NULL`, `TRIM`+`MAIÚSCULAS`+acentos→ASCII;
+  datas `DATE`, `HORA` `TIME`, `KM` `DOUBLE` (vírgula; negativo→NULL), `QTD`/`BR` `BIGINT`,
+  `UF_*` só 27 UFs válidas; `QUARTIL` = Q1 jan-mar … Q4 out-dez.
+- **Validação**: 92.215.588 linhas entram e saem; `MES` 1–12, `ANO` 19 anos,
+  `QUARTIL` ∈ {Q1..Q4} e 100% coerente com `MES`; 0 datas/horas inválidas; 0 ano divergente.
+- **Correções**: 3.941.160 células de UF inválidas → NULL (2013:1.267; 2019–24: `'-1`/`-1`);
+  7.831.550 sentinelas de `ESPECIE` → NULL (era2); acento/caso unificados (`TRAÇÃO`=`TRACAO`).
+- `dados_tratados/resumo_colunas.md`: stats por coluna, nulos por era, anomalias e
+  **resumo das colunas que podem/precisam ser resumidas** (códigos vs textos, marcas/modelos,
+  município, hora; lacunas de era documentadas).
+- Retomadas possíveis: `04_tratar.py 2020 2021 …` (parcial) e `04_tratar.py --resumo` (fase B).
+
+## Ajuste — MES com nome do mês (2026-11-25)
+
+- `MES` passou de SMALLINT (1–12) para **VARCHAR com o nome do mês**
+  (JANEIRO…DEZEMBRO; acento→ASCII, coerente com a regra da base: `MARCO`).
+  `QUARTIL` continua derivado do mês numérico interno (Q1–Q4 de 3 meses).
+- Regeneração: migração dos 19 parquets em 74 s (mesma contagem; `04_tratar.py`
+  atualizado — reproduz o mesmo resultado) + `--resumo` revalidou 92.215.588
+  (0 `MES` fora da regra, 0 `QUARTIL` divergente).
+- `dados_tratados/valores_rejeitados.md`: varredura da fonte listando **tudo** que
+  virou `NULL` — 108 valores inválidos de `UF_PLACA` (3.941.160 células, topos
+  `'-1`=2.553.720 e `-1`=1.361.628) e as 2 sentinelas de `ESPECIE`
+  (`'-1`=4.804.523 e `-1`=3.027.027 = 7.831.550) — totais batem com o resumo §3.
