@@ -1,6 +1,6 @@
 # resumo_colunas — base analítica (dados_tratados)
 
-- **Linhas:** 92,215,588 · **Colunas:** 28 · Gerado por `scripts/04_tratar.py` em 2026-11-25 14:43.
+- **Linhas:** 92,215,588 · **Colunas:** 28 · Gerado por `scripts/04_tratar.py` em 2026-11-25 19:16.
 - **Fonte:** `dados_brutos/infracoes_2007..2025.csv.gz` (19 arquivos, schema canônico 25 col).
 - Colunas de texto: sentinela → `NULL`; `TRIM` + `MAIÚSCULAS` + acentos→ASCII. Colunas derivadas: `MES` (nome do mês: JANEIRO…DEZEMBRO), `ANO`, `QUARTIL` (Q1=jan-mar, Q2=abr-jun, Q3=jul-set, Q4=out-dez).
 
@@ -29,9 +29,9 @@
 | 19 | `MED_CONSIDERADA` | VARCHAR | 17,662,677 | 19.15% | 88,185 |
 | 20 | `EXC_VERIFICADO` | VARCHAR | 18,239,216 | 19.78% | 49,396 |
 | 21 | `ESPECIE` | VARCHAR | 17,126,776 | 18.57% | 10 |
-| 22 | `NOME_VEICULO_MARCA` | VARCHAR | 29,357,950 | 31.84% | 38,153 |
-| 23 | `NOM_MODELO_VEICULO` | VARCHAR | 18,745,058 | 20.33% | 137,695 |
-| 24 | `TIPO_VEICULO` | VARCHAR | 63,247,844 | 68.59% | 89 |
+| 22 | `NOME_VEICULO_MARCA` | VARCHAR | 29,357,950 | 31.84% | 38,221 |
+| 23 | `NOM_MODELO_VEICULO` | VARCHAR | 18,745,077 | 20.33% | 137,629 |
+| 24 | `TIPO_VEICULO` | VARCHAR | 63,247,959 | 68.59% | 31 |
 | 25 | `QTD_INFRACOES` | BIGINT | 52,795,250 | 57.25% | 2 |
 | 26 | `MES` | VARCHAR | 0 | 0.00% | 12 |
 | 27 | `ANO` | SMALLINT | 0 | 0.00% | 19 |
@@ -74,30 +74,30 @@
 
 | Ano | Linhas | Datas inválidas | Ano divergente | Hora inválida | UF placa inv. | UF infra inv. | KM inv. | Qtd inv. | BR inv. | Espécie sentinela | Parquet MB |
 |----:|-------:|----------------:|---------------:|--------------:|--------------:|--------------:|--------:|---------:|--------:|------------------:|-----------:|
-| 2007 | 1,855,460 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 17.3 |
+| 2007 | 1,855,460 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 17.4 |
 | 2008 | 2,432,797 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 25.5 |
-| 2009 | 3,045,607 | 0 | 0 | 0 | 1 | 0 | 0 | 0 | 0 | 0 | 32.8 |
+| 2009 | 3,045,607 | 0 | 0 | 0 | 1 | 0 | 0 | 0 | 0 | 0 | 32.9 |
 | 2010 | 3,038,357 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 32.6 |
 | 2011 | 2,884,305 | 0 | 0 | 0 | 1 | 0 | 0 | 0 | 0 | 0 | 31.2 |
-| 2012 | 2,843,728 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 31.1 |
-| 2013 | 3,251,800 | 0 | 0 | 0 | 1267 | 0 | 0 | 0 | 0 | 0 | 34.6 |
+| 2012 | 2,843,728 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 31.0 |
+| 2013 | 3,251,800 | 0 | 0 | 0 | 1267 | 0 | 0 | 0 | 0 | 0 | 34.5 |
 | 2014 | 3,327,193 | 0 | 0 | 0 | 13 | 0 | 0 | 0 | 0 | 0 | 34.9 |
-| 2015 | 5,408,986 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 68.6 |
+| 2015 | 5,408,986 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 68.5 |
 | 2016 | 5,584,915 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 70.8 |
-| 2017 | 6,023,833 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 77.4 |
+| 2017 | 6,023,833 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 77.5 |
 | 2018 | 7,356,159 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 97.3 |
-| 2019 | 5,742,110 | 0 | 0 | 0 | 1112328 | 0 | 0 | 0 | 0 | 3027027 | 95.5 |
-| 2020 | 5,182,537 | 0 | 0 | 0 | 95164 | 0 | 0 | 0 | 0 | 2389858 | 84.4 |
-| 2021 | 5,241,299 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 2200340 | 85.4 |
-| 2022 | 4,135,523 | 0 | 0 | 0 | 875441 | 0 | 0 | 0 | 0 | 205630 | 88.1 |
-| 2023 | 5,946,483 | 0 | 0 | 0 | 1071395 | 0 | 0 | 0 | 0 | 8695 | 126.0 |
-| 2024 | 8,710,022 | 0 | 0 | 0 | 762438 | 0 | 0 | 0 | 0 | 0 | 176.7 |
+| 2019 | 5,742,110 | 0 | 0 | 0 | 1112328 | 0 | 0 | 0 | 0 | 3027027 | 96.4 |
+| 2020 | 5,182,537 | 0 | 0 | 0 | 95164 | 0 | 0 | 0 | 0 | 2389858 | 84.1 |
+| 2021 | 5,241,299 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 2200340 | 85.6 |
+| 2022 | 4,135,523 | 0 | 0 | 0 | 875441 | 0 | 0 | 0 | 0 | 205630 | 88.0 |
+| 2023 | 5,946,483 | 0 | 0 | 0 | 1071395 | 0 | 0 | 0 | 0 | 8695 | 125.8 |
+| 2024 | 8,710,022 | 0 | 0 | 0 | 762438 | 0 | 0 | 0 | 0 | 0 | 176.4 |
 | 2025 | 10,204,474 | 0 | 0 | 0 | 23112 | 0 | 0 | 0 | 0 | 0 | 199.0 |
 
 ## 4. Colunas que PODEM ser resumidas
 
 - **`DESCRICAO_ABRVIADA` / `ENQUADRAMENTO` vs `COD_INFRACAO`**: 410 códigos distintos; pares (código,enquadramento) ≈ 789; pares (código,descrição) ≈ 466; (enquadramento,descrição) ≈ 1,102. Há códigos com múltiplos textos → manter os três na base analítica; na modelável resumir via dicionário código→texto.
-- **`NOME_VEICULO_MARCA` + `NOM_MODELO_VEICULO`**: ≈ 38,153 marcas e ≈ 137,695 modelos (carteira aberta, grafias livres) → **resumir em `ESPECIE`/`TIPO_VEICULO`** (já padronizados) ou dicionário de marcas controlado antes de uso como categoria.
+- **`NOME_VEICULO_MARCA` + `NOM_MODELO_VEICULO`**: ≈ 38,221 marcas e ≈ 137,629 modelos (carteira aberta, grafias livres) → **resumir em `ESPECIE`/`TIPO_VEICULO`** (já padronizados) ou dicionário de marcas controlado antes de uso como categoria.
 - **`NOM_MUNICIPIO`**: ≈ 3,228 municípios distintos (texto) → **resumir em código IBGE** (ou `UF_INFRACAO`+código) para agregação/geolocalização estável.
 - **`HORA`**: detalhe fino já coberto por `MES`/`ANO`/`QUARTIL` → em bases modeláveis **resumir em turno/faixa horária** (MADRUGADA/MANHÃ/TARDE/NOITE).
 - **`NUMERO_AUTO`**: identificador (≈1 por linha) — **não resume**: é a chave do auto de infração; servir de join/contagem, não de categoria.

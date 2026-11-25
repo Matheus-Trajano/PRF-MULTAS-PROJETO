@@ -6,7 +6,7 @@ ingestão de fontes brutas → normalização → **base analítica padronizada*
 | Métrica | Valor |
 |---------|-------|
 | Registros | **92.215.588** (19 anos) |
-| Esquema | **28 colunas** (25 canônicas + `MES`, `ANO`, `QUARTIL`) |
+| Esquema | base analítica **37 col** (25 canônicas + 12 derivadas) · 12 agregados |
 | Motor | DuckDB (100% Python: `import duckdb`) |
 | Base tratada | 19 Parquets ZSTD · **1,4 GB** em `dados_tratados/` |
 
@@ -17,6 +17,7 @@ ingestão de fontes brutas → normalização → **base analítica padronizada*
 | ✅ 1 | Ingestão + normalização (schema canônico 25 col) | [#1](https://github.com/Matheus-Trajano/PRF-MULTAS-PROJETO/pull/1) |
 | ✅ — | `dados_brutos/` publicado no GitHub (gzip em volumes ≤ 95 MB + `SHA256SUMS.txt`) | [#2](https://github.com/Matheus-Trajano/PRF-MULTAS-PROJETO/pull/2) |
 | ✅ 2 | Tratamento → **base analítica** (padronização, 28 colunas, relatórios) | [#3](https://github.com/Matheus-Trajano/PRF-MULTAS-PROJETO/pull/3) |
+| ✅ 3 | Análise, enriquecimento (37 col), 12 agregados, docs C/D e dashboard Plotly | [#4](https://github.com/Matheus-Trajano/PRF-MULTAS-PROJETO/pull/4) |
 
 ## Estrutura
 
@@ -28,12 +29,17 @@ ingestão de fontes brutas → normalização → **base analítica padronizada*
 │   ├── 01b_montar_partes.py  # (histórico, superseded)
 │   ├── 02_extrair_unificar.py# 2018–2025: unzip+sanear+unificar
 │   ├── 03_normalizar.py      # → 25 col canônicas (TRIM, datas ISO, NULLs)
-│   └── 04_tratar.py          # → base analítica 28 col (Parquet)
+│   ├── 04_tratar.py          # → base analítica 28 col (Parquet)
+│   ├── 05_enriquecer.py      # → 37 col (+9 derivadas, Etapa A)
+│   └── 06_agregar.py         # → 12 agregados p/ gráficos (Etapa B)
 ├── notebooks/
-│   └── 00_pipeline_completo.ipynb  # TODOS os scripts + validações executáveis
+│   ├── 00_pipeline_completo.ipynb  # TODOS os scripts + validações executáveis
+│   └── 05_eda_plotly.ipynb         # dashboard Plotly: filtros + cascata (Etapa E)
+├── docs/                      # análise de variáveis, catálogo e interações
 ├── dados_brutos/             # fonte: 19 .csv.gz + partes + checksums + README
 ├── dados_tratados/           # base analítica (Parquet) + relatórios (versionados)
 │   ├── base_analitica/       # infracoes_YYYY.parquet (19) — fora do Git
+│   ├── agregados/            # 12 agregados p/ gráficos — fora do Git
 │   ├── resumo_colunas.md     # stats, nulos por era, colunas a resumir
 │   └── valores_rejeitados.md # o que virou NULL (valor a valor)
 ├── logs/ingestao_multas.md   # log completo de execuções
@@ -56,9 +62,14 @@ gzip -6 dados_brutos/infracoes_*.csv
 .venv/bin/python scripts/04_tratar.py               # 19 anos + resumo
 .venv/bin/python scripts/04_tratar.py --resumo      # só regenera relatórios
 
+# Fase 3 (enriquecimento + agregados; minutos)
+.venv/bin/python scripts/05_enriquecer.py           # → 37 col (Etapa A)
+.venv/bin/python scripts/06_agregar.py             # → 12 agregados (Etapa B)
+
 # Notebook (validações em segundos; recria os scripts via %%writefile)
 .venv/bin/pip install notebook        # ou abrir no VS Code / Colab
 .venv/bin/jupyter notebook notebooks/00_pipeline_completo.ipynb
+.venv/bin/jupyter notebook notebooks/05_eda_plotly.ipynb   # EDA interativa (Etapa E)
 ```
 
 ## Dados

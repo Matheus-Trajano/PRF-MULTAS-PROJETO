@@ -22,3 +22,5 @@ dados_brutos/infracoes_*.csv.gz
 dados_tratados/base_analitica/
 dados_tratados/_ddb_tmp/
 dados_tratados/_validacao.jsonl
+dados_tratados/_enriquecimento.jsonl
+dados_tratados/agregados/
