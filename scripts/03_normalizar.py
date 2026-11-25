@@ -224,7 +224,18 @@ def normalizar_ano(ano: int) -> tuple[int, float]:
     )
 
     t0 = time.time()
-    n_in = con.execute(f"SELECT count(*) FROM {leitura}").fetchone()[0]
+    try:
+        n_in = con.execute(f"SELECT count(*) FROM {leitura}").fetchone()[0]
+    except duckdb.NotImplementedException:
+        # alguns arquivos nao suportam o CSV reader paralelo ("full read");
+        # cai para leitura serial (bufferiza o descompactado — só viável com
+        # arquivos < limite de memória do DuckDB)
+        leitura = (
+            f"read_csv('{caminho}', header=true, delim='{delim}', quote='\"', escape='\"', "
+            "all_varchar=true, encoding='utf-8', strict_mode=false, parallel=false)"
+        )
+        print(f"  [INFO {ano}] reader paralelo indisponível — usando leitura serial")
+        n_in = con.execute(f"SELECT count(*) FROM {leitura}").fetchone()[0]
 
     con.execute(
         f"COPY (SELECT {selecao} FROM {leitura}) TO '{tmp.resolve()}' "

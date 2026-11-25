@@ -134,3 +134,18 @@ Resultado: **os 19 CSVs de `dados_brutos/` estão padronizados com um schema ún
 
 - ~~junho/2024~~: **não existe na base** — 2024 já normalizado com os 11 meses existentes.
 - Próxima: etapa de tratamento → `dados_tratados/` (base analítica + modelável).
+
+---
+
+# Regeneração + publicação (2026-11-25)
+
+- Workspace foi resetado; **regeneração integral comprovada**: 32 fontes rebaixadas do Drive
+  (11 RARs + 21 ZIPs, 1,9 GB), `01` + `02` + `03` re-executados — **contagens idênticas
+  (92.215.588) e mesmo header md5 `8fe1a7bb`** do ciclo anterior.
+- `scripts/03_normalizar.py`: fallback automático `parallel=false` quando o reader paralelo do
+  DuckDB recusa o arquivo (ex.: 2023) — leitura serial com buffer no limite de memória.
+- `scripts/02_extrair_unificar.py` já opera com `MESES_INEXISTENTES = {2024: [6]}`.
+- **Publicação no GitHub**: CSVs (~17,9 GB) excedem o limite de 100 MB/arquivo do Git →
+  compactados (`gzip -6`, 2,26 GB) e publicados como assets do Release
+  [`dados-brutos`](https://github.com/Matheus-Trajano/PRF-MULTAS-PROJETO/releases/tag/dados-brutos)
+  + `SHA256SUMS.txt`; `dados_brutos/README.md` versionado no repositório documenta tudo.

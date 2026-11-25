@@ -14,3 +14,5 @@ __pycache__/
 .ipynb_checkpoints/
 dados_brutos/_ddb_tmp/
 dados_brutos/*.norm.csv
+dados_brutos/*.csv.gz
+dados_brutos/SHA256SUMS.txt
