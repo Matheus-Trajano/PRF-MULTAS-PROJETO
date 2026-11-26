@@ -25,7 +25,7 @@ Dashboard interativo de **multas da PRF (2007–2025)** com drill-down
 ano → mês → semana → dia, conforme `docs/catalogo_graficos.md` (Etapa C) e
 `docs/especificacao_interacoes.md` (Etapa D).
 
-**Fonte única:** `dados_tratados/agregados/*.parquet` (12 tabelas leves).
+**Fonte única:** `dados_tratados/agregados/*.parquet` (13 tabelas leves).
 Os 92.215.588 registros da base analítica **nunca** são carregados aqui —
 todos os gráficos somam a coluna `qtd` dos agregados.
 
@@ -33,7 +33,7 @@ todos os gráficos somam a coluna `qtd` dos agregados.
 (todos os agregados carregam `ANO` + `UF_INFRACAO`). O filtro `MUNICIPIO`
 é explorado pelo drill do treemap geográfico (UF → município).
 
-**Validação de aceite:** `soma(qtd) == 92.215.588` em todos os 12 agregados
+**Validação de aceite:** `soma(qtd) == 92.215.588` em todos os 13 agregados
 (assert na última célula).
 
 > **Nota de dado:** junho/2024 não consta na fonte original da PRF — o
@@ -76,13 +76,13 @@ def ler(nome: str) -> pd.DataFrame:
 
 NOMES = ["tempo_diario", "hora_diaria", "top_infracao", "top_br", "top_uf",
          "top_municipio", "origem_ocorrencia", "natureza", "veiculo_especie",
-         "veiculo_marca", "abordagem", "velocidade_faixa"]
+         "veiculo_marca", "abordagem", "velocidade_faixa", "km_faixa"]
 D = {n: ler(n) for n in NOMES}
 
 for _n, _df in D.items():
     _s = int(_df["qtd"].sum())
     assert _s == TOTAL_ESPERADO, f"{_n}: soma(qtd)={_s} != {TOTAL_ESPERADO}"
-print(f"✓ 12 agregados carregados — soma(qtd) = {TOTAL_ESPERADO:,} em todos")
+print(f"✓ {len(NOMES)} agregados carregados — soma(qtd) = {TOTAL_ESPERADO:,} em todos")
 print("linhas: " + " | ".join(f"{n}={len(D[n]):,}" for n in NOMES))
 """
 
@@ -351,6 +351,31 @@ def desenhar_geo(_=None):
         fig5.update_layout(height=320, margin=dict(t=50, b=40))
         display(fig5)
 
+        # (6) histograma de KM (faixas de 50)
+        k = aplicar(D["km_faixa"]).groupby("FAIXA_KM", as_index=False)["qtd"].sum()
+        k = k.sort_values("FAIXA_KM")   # ordem lexicografica = ordem das faixas
+        fig6 = px.bar(k, x="FAIXA_KM", y="qtd",
+                      title="Distribuição por faixa de KM da infração",
+                      labels={"qtd": "Multas", "FAIXA_KM": "Faixa de KM"})
+        fig6.update_layout(height=340, margin=dict(t=50, b=40))
+        display(fig6)
+
+        # (7) KM por BR: top 12 BRs × faixa (heatmap log1p)
+        kb = aplicar(D["km_faixa"]).copy()
+        kb["rot"] = kb["BR_FORMATADA"].fillna("SEM BR")
+        top12_br = kb.groupby("rot")["qtd"].sum().nlargest(12).index.tolist()
+        kb = kb[kb["rot"].isin(top12_br)]
+        matk = kb.pivot_table(index="rot", columns="FAIXA_KM", values="qtd",
+                              aggfunc="sum", fill_value=0)
+        matk = matk.reindex(sorted(matk.columns), axis=1)
+        fig7 = px.imshow(np.log1p(matk.values), x=list(matk.columns),
+                         y=list(matk.index),
+                         labels=dict(x="Faixa de KM", y="BR", color="log(1+multas)"),
+                         title="KM por BR — top 12 BRs (heatmap)",
+                         color_continuous_scale="Greens", aspect="auto")
+        fig7.update_layout(height=420, margin=dict(t=50, b=40))
+        display(fig7)
+
 
 w_ano.observe(desenhar_geo, names="value")
 w_uf.observe(desenhar_geo, names="value")
@@ -498,8 +523,8 @@ for nome, df in D.items():
     assert s == TOTAL_ESPERADO, f"{nome}: {s} != {TOTAL_ESPERADO}"
 assert sorted(D["tempo_diario"]["ANO"].unique()) == list(range(2007, 2026))
 assert sorted(D["tempo_diario"]["MES"].unique()) == sorted(ORDEM_MES)
-assert len(D) == 12
-print("VALIDACAO_ETAPA_E_OK — 12 agregados, soma = 92.215.588, 19 anos, 12 meses")
+assert len(D) == 13
+print("VALIDACAO_ETAPA_E_OK — 13 agregados, soma = 92.215.588, 19 anos, 12 meses")
 """
 
 

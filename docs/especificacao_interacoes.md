@@ -1,7 +1,7 @@
 # Especificação de interações (Etapa D) — Fase 3
 
 Como o usuário navega nos gráficos Plotly. Aplica-se ao notebook `05_eda_plotly.ipynb`
-e futuramente ao Dash.
+e ao dashboard Dash `apps/dashboard.py` (Etapa E2 — clique real de drill).
 
 ## 1. Cascata temporal (pedido do usuário)
 
@@ -31,7 +31,7 @@ Hierarquias paralelas com o mesmo mecanismo:
 | Filtro | Origem | Efeito |
 |--------|--------|--------|
 | Ano (múltiplo) | `ANO` em todos os agregados | todos os painéis |
-| UF de ocorrência | `UF_INFRACAO` (em TODOS os 12 agregados desde a Etapa B) | todos os painéis |
+| UF de ocorrência | `UF_INFRACAO` (em TODOS os 13 agregados desde a Etapa B) | todos os painéis |
 | Município | `NOM_MUNICIPIO` (`top_municipio`) | geografia (drill do treemap UF→município) |
 | Natureza | `NATUREZA_INFRA` (`natureza`, `top_infracao`) | infração + demais |
 | Período livre | rango sobre `DATA_INFRACAO` (`tempo_diario`) | temporal + demais |
@@ -68,5 +68,6 @@ Regras:
 | espécie/tipo/marca | `veiculo_especie`, `veiculo_marca` |
 | abordagem / lote | `abordagem` |
 | velocidade | `velocidade_faixa` |
+| histograma KM / heatmap BR×faixa | `km_faixa` |
 
 Todos com `SUM(qtd)` — validação: soma total = 92.215.588 em cada arquivo.
