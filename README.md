@@ -22,17 +22,15 @@ ingestão de fontes brutas → normalização → **base analítica padronizada*
 | ✅ 6 | Parte 6 — gráficos no padrão da referência: top10 multas → `resultados/` | [#6](https://github.com/Matheus-Trajano/PRF-MULTAS-PROJETO/pull/6) |
 | ✅ 6 | Parte 6 — **g2**: drill interativo ano→mês→semana→dia, % do período pai | [#7](https://github.com/Matheus-Trajano/PRF-MULTAS-PROJETO/pull/7) |
 | ✅ 6 | Parte 6 — **g3**: top10 tipos de veículo × causas por período (menus em cascata) | [#8](https://github.com/Matheus-Trajano/PRF-MULTAS-PROJETO/pull/8) |
+| ✅ — | **Ingestão sem Google Drive** — `01_ingestao_brutos.py` valida os `.csv.gz` de `dados_brutos/` | [#10](https://github.com/Matheus-Trajano/PRF-MULTAS-PROJETO/pull/10) |
 
 ## Estrutura
 
 ```
 .
 ├── scripts/                  # pipeline (ordem numérica)
-│   ├── extract_rar.js        # extração dos RARs (node)
-│   ├── 01_unificar_anos.py   # 2007–2017: unifica por ano
-│   ├── 01b_montar_partes.py  # (histórico, superseded)
-│   ├── 02_extrair_unificar.py# 2018–2025: unzip+sanear+unificar
-│   ├── 03_normalizar.py      # → 25 col canônicas (TRIM, datas ISO, NULLs)
+│   ├── 01_ingestao_brutos.py # Fase 1: valida/ingeres os .csv.gz de dados_brutos (sem Drive)
+│   ├── 03_normalizar.py      # → 25 col canônicas (opcional — .gz já normalizados)
 │   ├── 04_tratar.py          # → base analítica 28 col (Parquet)
 │   ├── 05_enriquecer.py      # → 37 col (+9 derivadas, Etapa A)
 │   └── 06_agregar.py         # → 13 agregados p/ gráficos (Etapa B)
@@ -62,12 +60,10 @@ ingestão de fontes brutas → normalização → **base analítica padronizada*
 ```bash
 python3 -m venv .venv && .venv/bin/pip install -r requirements.txt
 
-# Fase 1 (do zero: requer fontes do Drive — ver dados_brutos/README.md)
-node scripts/extract_rar.js <rar> <outDir>          # 2007–2017
-.venv/bin/python scripts/01_unificar_anos.py        # …
-.venv/bin/python scripts/02_extrair_unificar.py 2018 … 2025
-gzip -6 dados_brutos/infracoes_*.csv
-.venv/bin/python scripts/03_normalizar.py
+# Fase 1 — ingestão a partir de dados_brutos/*.csv.gz (SEM Google Drive)
+.venv/bin/python scripts/01_ingestao_brutos.py          # valida os 19 (~1 min)
+.venv/bin/python scripts/01_ingestao_brutos.py --sha256 # + integridade dos .gz
+# opcional: .venv/bin/python scripts/03_normalizar.py   # .gz já estão normalizados
 
 # Fase 2 (usa os .csv.gz já normalizados; ~1 h)
 .venv/bin/python scripts/04_tratar.py               # 19 anos + resumo

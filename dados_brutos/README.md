@@ -69,22 +69,24 @@ Colunas ausentes em uma era ficam vazias nos anos daquela era (ex.: `numero_auto
 `tipo_veiculo` só 2022+, `hora` só 2015+, `qtd_infracoes` só 2020+). Tokens de ausência de origem
 (`NA`, `N/I`, `N/A`) convertidos para vazio. **jun/2024 não existe na base** — 2024 tem 11 meses.
 
-## Regeneração (do zero)
+## Ingestão (fluxo atual — sem Google Drive)
 
-Fontes no Google Drive: pasta `PRF_MULTAS` (RARs 2007–2017) e `Multas_Part` (ZIPs mensais
-2018–2025, todos < 100 MB).
+A ingestão parte **destes próprios `.csv.gz`** (fonte única; sem RAR, sem ZIP, sem Drive):
 
 ```bash
-python3 -m venv .venv && .venv/bin/pip install duckdb
-npm install node-unrar-js 7zip-bin && chmod +x node_modules/7zip-bin/linux/x64/7za
-# 1) baixar as 32 fontes do Drive para google_drive/
-node scripts/extract_rar.js google_drive/infracoes_2007.rar google_drive/_extracted/2007  # … 2007–2017
-.venv/bin/python scripts/01_unificar_anos.py 2007 … 2017
-rm -rf google_drive/_extracted google_drive/*.rar            # libera disco
-.venv/bin/python scripts/02_extrair_unificar.py 2018 … 2025   # zips apagados após validação
-gzip -6 dados_brutos/infracoes_*.csv                          # libera disco p/ normalização
-.venv/bin/python scripts/03_normalizar.py                     # normaliza (lê .csv.gz)
-gzip -6 dados_brutos/infracoes_*.csv && cd dados_brutos && sha256sum infracoes_*.csv.gz > SHA256SUMS.txt
+.venv/bin/python scripts/01_ingestao_brutos.py            # valida os 19 (~1 min)
+.venv/bin/python scripts/01_ingestao_brutos.py --sha256   # + integridade (SHA256SUMS.txt)
+# em seguida (Fase 2):
+.venv/bin/python scripts/04_tratar.py                     # base analítica (~1 h)
 ```
 
-Detalhes: [`logs/ingestao_multas.md`](../logs/ingestao_multas.md).
+`01_ingestao_brutos.py` confere por ano: arquivo presente, contagem de linhas
+(vs tabela acima), header canônico de 25 colunas e — com `--sha256` — o hash de
+`SHA256SUMS.txt`; no fim exige o total **92.215.588**.
+
+## Regeneração das fontes brutas (histórico)
+
+Os CSVs foram gerados originalmente a partir do **Google Drive** (RARs 2007–2017,
+ZIPs 2018–2025) com `extract_rar.js` + `01_unificar_anos` + `02_extrair_unificar` —
+scripts **removidos** em 2026-11-26; a receita completa ficou registrada em
+[`logs/ingestao_multas.md`](../logs/ingestao_multas.md).
