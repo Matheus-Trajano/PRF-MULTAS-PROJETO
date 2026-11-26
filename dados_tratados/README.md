@@ -10,7 +10,7 @@ Saída de [`scripts/04_tratar.py`](../scripts/04_tratar.py): le os 19 CSV normal
 | `base_analitica/infracoes_YYYY.parquet` | 19 Parquets (ZSTD), **92.215.588 linhas × 28 colunas** — 1 por ano |
 | `resumo_colunas.md` | Estatísticas por coluna, nulos por era, anomalias corrigidas e **resumo das colunas que podem/precisam ser resumidas** |
 | `valores_rejeitados.md` | **Lista detalhada** do que foi considerado nulo/incorreto (regras + valores brutos com contagem por ano) |
-| `agregados/*.parquet` | **12 agregados leves** p/ os gráficos (Etapa B) — fora do Git |
+| `agregados/*.parquet` | **13 agregados leves** p/ os gráficos (Etapa B) — fora do Git |
 
 Os `.parquet` são dados grandes → fora do Git (`.gitignore`); regeneração:
 `.venv/bin/python scripts/04_tratar.py`.
@@ -67,7 +67,7 @@ Log por ano: `_enriquecimento.jsonl` (fora do Git).
 
 ## Agregados (Etapa B — `scripts/06_agregar.py`)
 
-`agregados/*.parquet` — 12 tabelas leves para os gráficos (NUNCA as 92 M linhas no
+`agregados/*.parquet` — 13 tabelas leves para os gráficos (NUNCA as 92 M linhas no
 browser). Todas têm `qtd` (count), `ANO` e `UF_INFRACAO`; **soma(qtd) = 92.215.588
 em todos** (assert no script):
 
@@ -79,5 +79,6 @@ em todos** (assert no script):
 | `top_br` | 4.681 | `veiculo_especie` | 8.632 |
 | `top_uf` | 513 | `veiculo_marca` | 623.638 |
 | `abordagem` | 4.008 | `velocidade_faixa` | 2.220 |
+| `km_faixa` | 29.202 | | |
 
 Regeneração: `05_enriquecer.py` → `06_agregar.py` (minutos). Fora do Git.

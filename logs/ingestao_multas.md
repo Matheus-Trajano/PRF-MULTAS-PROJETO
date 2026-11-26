@@ -210,3 +210,23 @@ Resultado: **os 19 CSVs de `dados_brutos/` estão padronizados com um schema ún
   `VALIDACAO_ETAPA_E_OK — 12 agregados, soma = 92.215.588, 19 anos, 12 meses`.
 - Dependências novas no `.venv`: `plotly`, `ipywidgets`, `pandas`, `numpy`,
   `nbformat`, `nbclient`, `ipykernel` (hoje em `requirements.txt`).
+
+# Fase 3 (cont.) — recuperação de sandbox, KM e Dash E2 (2026-11-25)
+
+- **Reset do sandbox**: workspace voltou ao commit base `d65200c` (.venv, parquets,
+  agregados e branch local perdidos). Recuperado 100% via Git: `reset --hard 3665fa2`
+  (histórico íntegro; `origin/main` = `ef676b2`); `.gz` remontados das 26 partes +
+  `sha256sum -c` → **19/19 OK**; `.venv` recriado (duckdb, plotly, dash, notebook…).
+- **Etapa 0 reexecutada**: `04_tratar.py` → OK 19 anos, 92.215.588 linhas, 3771s
+  (máquina 3,9 GB / 2 CPUs — config do script já era `threads=2`/`memory_limit=2400MB`).
+- **Etapa A**: `05_enriquecer.py` → 37 col, in==out, 144s.
+- **Etapa B (13 agregados)**: novo **`km_faixa`** (faixas de 50 km: `000-049`…`0950-0999`,
+  `1000-1499`, `1500+`, `NAO_INFORMADO`; 29.202 linhas) — `AGREGADOS_OK 13, 29s`,
+  soma=92.215.588 nos 13. Base 2024 para calibração: min 0 / mediana 267 / max 1260.
+- **Etapa E (notebook)**: rebuild com 13 agregados + histograma KM + heatmap BR×faixa
+  (nbclient: 8 células, 0 erros, `VALIDACAO_ETAPA_E_OK … 13 agregados`).
+- **Etapa E2 (Dash)**: `apps/dashboard.py` — 8 callbacks validados (`_setup_server`),
+  filtros ANO/UF/município/natureza/período + "limpar", KPIs, 4 abas, cascata com
+  clique na barra (ano→mês→semana→dia) + breadcrumb + "voltar". Smoke: 22 figuras
+  construídas; servidor :8050 → HTTP 200.
+- **Prévias vivas**: Dash `0.0.0.0:8050` ✓ · Jupyter `0.0.0.0:8888` (notebook 05) ✓.

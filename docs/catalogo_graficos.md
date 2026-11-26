@@ -2,7 +2,7 @@
 
 Mapeia cada variável de `docs/analise_variaveis.md` §2.1 → tipo de gráfico → métrica →
 ordenação → tratamento de NULL. **Fonte de dados:** `dados_tratados/agregados/*.parquet`
-(Etapa B) — nunca as 92 M linhas direto no browser. Todos os 12 agregados
+(Etapa B) — nunca as 92 M linhas direto no browser. Todos os 13 agregados
 carregam `ANO` + `UF_INFRACAO` (filtros globais da Etapa D).
 
 Regra geral de NULL: exibir como categoria **"NÃO INFORMADO"** (nunca ocultar);
@@ -35,7 +35,7 @@ Regra geral de NULL: exibir como categoria **"NÃO INFORMADO"** (nunca ocultar);
 | `NOM_MUNICIPIO` top10 | barras | `SUM(qtd)` | desc | sempre rotular `UF — MUN` | `top_municipio` |
 | `NUM_BR` top10 | barras | `SUM(qtd)` | desc | clicar BR → evolução | `top_br` |
 | `BR_FORMATADA` | rótulo (`BR-040`) | — | — | — | `top_br` |
-| `NUM_KM` | histograma / boxplot por BR | `SUM(qtd)` (faixas) | — | — | adiado: exige agregado de KM (futuro) |
+| `NUM_KM` | histograma (faixas de 50 km) + heatmap BR × faixa | `SUM(qtd)` | faixas `000-049`→`1500+`, `NAO_INFORMADO` | clique BR → detalhe | `km_faixa` |
 | `SENTIDO_TRAFEGO` | barras | `SUM(qtd)` | C, D | — | `abordagem` |
 
 ## 3. Infração

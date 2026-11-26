@@ -3,9 +3,10 @@
 06_agregar.py — Etapa B: camada de agregados pre-computados para os graficos.
 
 Le dados_tratados/base_analitica/*.parquet (37 col, Etapa A) e grava
-dados_tratados/agregados/*.parquet — uma tabela por granularidade, todas com
-metrica `qtd` (count(*)) e dimensao ANO p/ filtros. Cada agregado varre os
-parquets direto (sem temp table — o spill materialize estourou o disco):
+dados_tratados/agregados/*.parquet — 13 tabelas por granularidade, todas com
+metrica `qtd` (count(*)) e dimensao ANO+UF_INFRACAO p/ filtros globais.
+Cada agregado varre os parquets direto (sem temp table — o spill materialize
+estourou o disco):
 
   tempo_diario         DATA_INFRACAO | ANO MES QUARTIL SEMANA_DO_MES
                              DIA_SEMANA(_NUM) FIM_DE_SEMANA            ~7k
@@ -22,6 +23,8 @@ parquets direto (sem temp table — o spill materialize estourou o disco):
   abordagem            ANO TIP_ABORDAGEM IND_ASSINOU_AUTO SENTIDO_TRAFEGO
                              QTD_INFRACOES
   velocidade_faixa     ANO FAIXA_VELOCIDADE (0-40,41-60,...,120+,NULL)
+  km_faixa             ANO NUM_BR_INFRACAO BR_FORMATADA FAIXA_KM
+                       (000-049..0950-0999 de 50 em 50, 1000-1499, 1500+, NAO_INFORMADO)
 
 Validacao: soma(qtd) == 92.215.588 em TODOS os agregados.
 Uso: .venv/bin/python scripts/06_agregar.py
@@ -90,6 +93,18 @@ AGREGADOS: dict[str, str] = {
                  WHEN try_cast(replace(MED_REALIZADA, ',', '.') AS DOUBLE) <= 100 THEN '81-100'
                  WHEN try_cast(replace(MED_REALIZADA, ',', '.') AS DOUBLE) <= 120 THEN '101-120'
                  ELSE '120+' END AS FAIXA_VELOCIDADE,
+               count(*) AS qtd
+        FROM base GROUP BY ALL""",
+    "km_faixa": """
+        SELECT ANO, UF_INFRACAO, NUM_BR_INFRACAO, BR_FORMATADA,
+               CASE
+                 WHEN NUM_KM_INFRACAO IS NULL THEN 'NAO_INFORMADO'
+                 WHEN NUM_KM_INFRACAO >= 1500 THEN '1500+'
+                 WHEN NUM_KM_INFRACAO >= 1000 THEN '1000-1499'
+                 ELSE lpad(CAST(CAST(floor(NUM_KM_INFRACAO / 50) * 50 AS INTEGER) AS VARCHAR), 3, '0')
+                      || '-' ||
+                      lpad(CAST(CAST(floor(NUM_KM_INFRACAO / 50) * 50 + 49 AS INTEGER) AS VARCHAR), 3, '0')
+               END AS FAIXA_KM,
                count(*) AS qtd
         FROM base GROUP BY ALL""",
 }
