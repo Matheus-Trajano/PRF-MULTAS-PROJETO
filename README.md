@@ -20,6 +20,8 @@ ingestão de fontes brutas → normalização → **base analítica padronizada*
 | ✅ 3 | Análise, enriquecimento (37 col), 12 agregados, docs C/D e dashboard Plotly | [#4](https://github.com/Matheus-Trajano/PRF-MULTAS-PROJETO/pull/4) |
 | ✅ 3 | KM em faixas (13º agregado) + dashboard **Dash** com drill por clique | [#5](https://github.com/Matheus-Trajano/PRF-MULTAS-PROJETO/pull/5) |
 | ✅ 6 | Parte 6 — gráficos no padrão da referência: top10 multas → `resultados/` | [#6](https://github.com/Matheus-Trajano/PRF-MULTAS-PROJETO/pull/6) |
+| ✅ 6 | Parte 6 — **g2**: drill interativo ano→mês→semana→dia, % do período pai | [#7](https://github.com/Matheus-Trajano/PRF-MULTAS-PROJETO/pull/7) |
+| ✅ 6 | Parte 6 — **g3**: top10 tipos de veículo × causas por período (menus em cascata) | [#8](https://github.com/Matheus-Trajano/PRF-MULTAS-PROJETO/pull/8) |
 
 ## Estrutura
 
