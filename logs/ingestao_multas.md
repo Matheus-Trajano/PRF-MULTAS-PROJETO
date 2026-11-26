@@ -1,5 +1,11 @@
 # Log de Ingestão — Multas PRF (2007–2025)
 
+> **Atualização (2026-11-26):** a ingestão passou a partir de
+> `dados_brutos/*.csv.gz` via `scripts/01_ingestao_brutos.py` (**sem Google
+> Drive**). Os scripts `extract_rar.js`, `01_unificar_anos`,
+> `01b_montar_partes` e `02_extrair_unificar` foram **removidos**; este log
+> permanece como **histórico** da geração original a partir do Drive.
+
 Data: 2026-11-24
 Etapa: 01 — Unificação de CSVs mensais/bimestrais → **1 arquivo por ano**
 Motor: Python 3.11 + DuckDB 2.0.1 (`import duckdb`) — SQL embutido no pipeline Python
