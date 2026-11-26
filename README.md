@@ -19,6 +19,7 @@ ingestão de fontes brutas → normalização → **base analítica padronizada*
 | ✅ 2 | Tratamento → **base analítica** (padronização, 28 colunas, relatórios) | [#3](https://github.com/Matheus-Trajano/PRF-MULTAS-PROJETO/pull/3) |
 | ✅ 3 | Análise, enriquecimento (37 col), 12 agregados, docs C/D e dashboard Plotly | [#4](https://github.com/Matheus-Trajano/PRF-MULTAS-PROJETO/pull/4) |
 | ✅ 3 | KM em faixas (13º agregado) + dashboard **Dash** com drill por clique | [#5](https://github.com/Matheus-Trajano/PRF-MULTAS-PROJETO/pull/5) |
+| ✅ 6 | Parte 6 — gráficos no padrão da referência: top10 multas → `resultados/` | [#6](https://github.com/Matheus-Trajano/PRF-MULTAS-PROJETO/pull/6) |
 
 ## Estrutura
 
@@ -35,9 +36,13 @@ ingestão de fontes brutas → normalização → **base analítica padronizada*
 │   └── 06_agregar.py         # → 13 agregados p/ gráficos (Etapa B)
 ├── notebooks/
 │   ├── 00_pipeline_completo.ipynb  # TODOS os scripts + validações executáveis
-│   └── 05_eda_plotly.ipynb         # dashboard Plotly: filtros + cascata (Etapa E)
+│   ├── 05_eda_plotly.ipynb         # dashboard Plotly: filtros + cascata (Etapa E)
+│   ├── 09_parte6_graficos.ipynb    # Parte 6: gráficos Plotly (padrão da referência)
+│   └── _build_graficos.py          # builder que gera/executa o notebook 09
 ├── apps/
 │   └── dashboard.py                # dashboard Dash E2: drill por clique (4 abas)
+├── resultados/                # gráficos exportados (HTML autocontido — versionado)
+│   └── g1_top10_multas.html   # g1: top10 causas 2007–2025
 ├── docs/                      # análise de variáveis, catálogo e interações
 ├── dados_brutos/             # fonte: 19 .csv.gz + partes + checksums + README
 ├── dados_tratados/           # base analítica (Parquet) + relatórios (versionados)
@@ -46,7 +51,7 @@ ingestão de fontes brutas → normalização → **base analítica padronizada*
 │   ├── resumo_colunas.md     # stats, nulos por era, colunas a resumir
 │   └── valores_rejeitados.md # o que virou NULL (valor a valor)
 ├── logs/ingestao_multas.md   # log completo de execuções
-└── requirements.txt          # duckdb==2.0.1
+└── requirements.txt          # duckdb, pandas, plotly, dash, nbclient…
 ```
 
 ## Como executar
@@ -72,10 +77,14 @@ gzip -6 dados_brutos/infracoes_*.csv
 # Dashboard Dash (E2 — drill por clique; http://0.0.0.0:8050)
 .venv/bin/python apps/dashboard.py
 
-# Notebook (validações em segundos; recria os scripts via %%writefile)
+# Parte 6 — gráficos (gera 09_parte6_graficos.ipynb + resultados/*.html)
+.venv/bin/python notebooks/_build_graficos.py
+
+# Notebooks (validações em segundos; recria os scripts via %%writefile)
 .venv/bin/pip install notebook        # ou abrir no VS Code / Colab
 .venv/bin/jupyter notebook notebooks/00_pipeline_completo.ipynb
 .venv/bin/jupyter notebook notebooks/05_eda_plotly.ipynb   # EDA interativa (Etapa E)
+.venv/bin/jupyter notebook notebooks/09_parte6_graficos.ipynb
 ```
 
 ## Dados
@@ -92,6 +101,20 @@ gzip -6 dados_brutos/infracoes_*.csv
   [`valores_rejeitados.md`](dados_tratados/valores_rejeitados.md) ·
   [`dados_tratados/README.md`](dados_tratados/README.md).
 
+## Gráficos (`resultados/`)
+
+Padrão do repositório de referência
+[`PRF_pandas_plotly-2023-2025`](https://github.com/Matheus-Trajano/PRF_pandas_plotly-2023-2025):
+cada gráfico vive no notebook da sua etapa (`notebooks/09_parte6_graficos.ipynb`),
+responde a uma pergunta (células **Pergunta/Resposta** com os números), tem
+**título com a mensagem principal** + legenda de 2 linhas, `assert`s antes de
+salvar e é exportado **autocontido** (`include_plotlyjs=True`, abre offline) por
+`salvar_grafico()`.
+
+| # | Gráfico | Arquivo |
+|---|---------|---------|
+| 1 | Top 10 causas que mais ocorrem — todos os anos (2007–2025); velocidade = 52% | `resultados/g1_top10_multas.html` |
+
 ## Regras de dados (decisões de negócio)
 
 - **jun/2024 não existe** na base (11 meses em 2024) — tratada como inexistente
@@ -106,4 +129,6 @@ gzip -6 dados_brutos/infracoes_*.csv
 
 - Estrutura/analítica espelha o projeto de referência FAP-2026 (bases
   analítica + modelável; dicionário; asserts).
+- Notebooks por etapa, gráficos Plotly e pasta `resultados/` espelham
+  [`PRF_pandas_plotly-2023-2025`](https://github.com/Matheus-Trajano/PRF_pandas_plotly-2023-2025).
 - Log de execuções: [`logs/ingestao_multas.md`](logs/ingestao_multas.md).
