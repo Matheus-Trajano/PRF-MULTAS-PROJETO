@@ -200,7 +200,7 @@ Resultado: **os 19 CSVs de `dados_brutos/` estão padronizados com um schema ún
 - **Etapa C** — `docs/catalogo_graficos.md` (variável→gráfico→métrica→ordenação→drill→arquivo).
 - **Etapa D** — `docs/especificacao_interacoes.md` (cascata+breadcrumb, filtros globais,
   NÃO INFORMADO, top10 reativo, consumo dos agregados).
-- **Etapa E** — `notebooks/05_eda_plotly.ipynb` via builder `notebooks/_build_eda.py`
+- **Etapa E** — `notebooks/05_eda_plotly.ipynb` (hoje o próprio notebook é a fonte; os builders `_build_*.py` foram removidos)
   (nbclient: **8 células code, 0 erros**): 12 agregados, filtros ANO/UF, 6 KPIs,
   **20 figuras Plotly** em 4 seções — temporal (cascata ano→mês→semana→dia com
   breadcrumb, heatmap ano×mês, dia da semana, fim de semana, hora, turno),
