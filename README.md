@@ -23,6 +23,7 @@ ingestão de fontes brutas → normalização → **base analítica padronizada*
 | ✅ 6 | Parte 6 — **g2**: drill interativo ano→mês→semana→dia, % do período pai | [#7](https://github.com/Matheus-Trajano/PRF-MULTAS-PROJETO/pull/7) |
 | ✅ 6 | Parte 6 — **g3**: top10 tipos de veículo × causas por período (menus em cascata) | [#8](https://github.com/Matheus-Trajano/PRF-MULTAS-PROJETO/pull/8) |
 | ✅ — | **Ingestão sem Google Drive** — `01_ingestao_brutos.py` valida os `.csv.gz` de `dados_brutos/` | [#10](https://github.com/Matheus-Trajano/PRF-MULTAS-PROJETO/pull/10) |
+| ✅ 6 | Parte 6 — **g4**: top10 BRs × causas por período (menus em cascata) | [#11](https://github.com/Matheus-Trajano/PRF-MULTAS-PROJETO/pull/11) |
 
 ## Estrutura
 
@@ -43,7 +44,8 @@ ingestão de fontes brutas → normalização → **base analítica padronizada*
 ├── resultados/                # gráficos exportados (HTML autocontido — versionado)
 │   ├── g1_top10_multas.html   # g1: top10 causas 2007–2025
 │   ├── g2_drill_temporal.html # g2: drill ano→mês→semana→dia (% do período pai)
-│   └── g3_top10_veiculos.html # g3: top10 tipos × causas por período (menus)
+│   ├── g3_top10_veiculos.html # g3: top10 tipos × causas por período (menus)
+│   └── g4_top10_brs.html      # g4: top10 BRs × causas por período (menus)
 ├── docs/                      # análise de variáveis, catálogo e interações
 ├── dados_brutos/             # fonte: 19 .csv.gz + partes + checksums + README
 ├── dados_tratados/           # base analítica (Parquet) + relatórios (versionados)
@@ -113,6 +115,7 @@ salvar e é exportado **autocontido** (`include_plotlyjs=True`, abre offline) po
 | 1 | Top 10 causas que mais ocorrem — todos os anos (2007–2025); velocidade = 52% | `resultados/g1_top10_multas.html` |
 | 2 | Drill interativo ano→mês→semana→dia; **% do período pai** (cada nível soma 100%) | `resultados/g2_drill_temporal.html` |
 | 3 | Top10 tipos de veículo (eixo híbrido TIPO+ESPÉCIE); clique no tipo → top5 causas do período | `resultados/g3_top10_veiculos.html` |
+| 4 | Top10 BRs com mais multas; clique na BR → top5 causas dela no período (menus Ano→Mês→Semana→Dia) | `resultados/g4_top10_brs.html` |
 
 ## Regras de dados (decisões de negócio)
 
