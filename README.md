@@ -42,7 +42,8 @@ ingestão de fontes brutas → normalização → **base analítica padronizada*
 ├── apps/
 │   └── dashboard.py                # dashboard Dash E2: drill por clique (4 abas)
 ├── resultados/                # gráficos exportados (HTML autocontido — versionado)
-│   └── g1_top10_multas.html   # g1: top10 causas 2007–2025
+│   ├── g1_top10_multas.html   # g1: top10 causas 2007–2025
+│   └── g2_drill_temporal.html # g2: drill ano→mês→semana→dia (% do período pai)
 ├── docs/                      # análise de variáveis, catálogo e interações
 ├── dados_brutos/             # fonte: 19 .csv.gz + partes + checksums + README
 ├── dados_tratados/           # base analítica (Parquet) + relatórios (versionados)
@@ -114,6 +115,7 @@ salvar e é exportado **autocontido** (`include_plotlyjs=True`, abre offline) po
 | # | Gráfico | Arquivo |
 |---|---------|---------|
 | 1 | Top 10 causas que mais ocorrem — todos os anos (2007–2025); velocidade = 52% | `resultados/g1_top10_multas.html` |
+| 2 | Drill interativo ano→mês→semana→dia; **% do período pai** (cada nível soma 100%) | `resultados/g2_drill_temporal.html` |
 
 ## Regras de dados (decisões de negócio)
 
