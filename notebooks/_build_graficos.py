@@ -531,6 +531,519 @@ display(IFrame(src="../resultados/g2_drill_temporal.html",
                width="100%", height=760))
 '''
 
+MD_G3 = """\
+---
+
+## Gráfico 3 — Top 10 de tipos de veículo e as causas de cada um (por período)
+
+**Pergunta:** quais são os 10 tipos de veículo com mais multas — e, ao
+**selecionar um tipo em qualquer recorte temporal** (ano, mês, semana, dia),
+quais são as **multas (causas) que mais ocorrem** com aquele tipo?
+
+**Resposta:** **PASSAGEIRO lidera com 28.070.960 multas (30,4%)**, seguido de
+**NAO INFORMADO (17.194.616 — 18,6%)** e **AUTOMOVEL (12.652.194 — 13,7%)**;
+o top10 concentra **84.702.589 autuações (91,9%)**. O eixo é **híbrido**
+(regra acordada): `TIPO_VEICULO` quando existe (**31,4%** — 2022–2025), senão
+a `ESPECIE` original (**50,2%** — 2007–2021) e, na ausência dos dois,
+**NAO INFORMADO** (**18,4%**). Ao clicar num tipo, as barras viram as
+**top5 causas dele no período selecionado** — ex.: velocidade até 20% =
+7.459.810 em AUTOMOVEL. **Métrica: % do período pai** — tipos sobre o total
+do período; causas sobre o total do tipo (cada recorte soma 100% no seu
+nível). **Menus Ano → Mês → Semana → Dia** fazem o recorte temporal.
+"""
+
+CODE_G3_DATA = '''\
+import json
+from collections import defaultdict
+
+con.execute("SET temp_directory='/tmp/duck_spill'")
+
+TIPO_EF = ("COALESCE(NULLIF(TRIM(TIPO_VEICULO), ''), NULLIF(TRIM(ESPECIE), ''), "
+           "'NAO INFORMADO')")
+
+# ---- 1) grão dia × tipo (uma varredura) e roll-up para todos os períodos ----
+grao = con.execute(f"""
+    SELECT ANO, MES, SEMANA_DO_MES AS sem, DAY(DATA_INFRACAO) AS dia,
+           {TIPO_EF} AS tipo, COUNT(*) AS q
+    FROM read_parquet('{BASE}')
+    GROUP BY 1, 2, 3, 4, 5
+""").df()
+
+tot_periodo = defaultdict(int)
+cont_tipo = defaultdict(lambda: defaultdict(int))
+for a, m, s, d, t, q in zip(grao["ANO"], grao["MES"], grao["sem"],
+                            grao["dia"], grao["tipo"], grao["q"]):
+    a, m, s, d, q = int(a), ORDEM_MES[m], int(s), int(d), int(q)
+    for p in ("", str(a), f"{a}-{m}", f"{a}-{m}-{s}", f"{a}-{m}-{s}-{d}"):
+        tot_periodo[p] += q
+        cont_tipo[p][t] += q
+del grao
+
+# por período, lista ordenada (tipo, qtd) — já agregada por tipo
+por_periodo = {p: sorted(d.items(), key=lambda x: -x[1])
+               for p, d in cont_tipo.items()}
+
+# ---- 2) coerência total com o Gráfico 2 (DADOS) em todos os níveis ----
+chaves_g2 = {""}
+for a in DADOS["anos"]:
+    chaves_g2.add(a["k"])
+    for m in DADOS["meses"][a["k"]]:
+        chaves_g2.add(f"{a['k']}-{m['k']}")
+        for w in DADOS["semanas"][f"{a['k']}-{m['k']}"]:
+            chaves_g2.add(f"{a['k']}-{m['k']}-{w['k']}")
+            for dd in DADOS["dias"][f"{a['k']}-{m['k']}-{w['k']}"]:
+                chaves_g2.add(f"{a['k']}-{m['k']}-{w['k']}-{dd['k']}")
+assert set(tot_periodo) == chaves_g2, "períodos do g3 diferentes do g2"
+
+def total_dados(p: str) -> int:
+    if p == "":
+        return DADOS["total"]
+    partes = p.split("-")
+    if len(partes) == 1:
+        return next(i["qtd"] for i in DADOS["anos"] if i["k"] == partes[0])
+    if len(partes) == 2:
+        return next(i["qtd"] for i in DADOS["meses"][partes[0]]
+                    if i["k"] == partes[1])
+    if len(partes) == 2 + 1:
+        return next(i["qtd"] for i in
+                    DADOS["semanas"][f"{partes[0]}-{partes[1]}"]
+                    if i["k"] == partes[2])
+    return next(i["qtd"] for i in
+                DADOS["dias"][f"{partes[0]}-{partes[1]}-{partes[2]}"]
+                if i["k"] == partes[3])
+
+for p, tot in tot_periodo.items():
+    assert tot == total_dados(p), f"total divergente no período {p!r}"
+
+# ---- 3) vocabulário de tipos + top10 geral (números da Resposta) ----
+geral = sorted(por_periodo[""], key=lambda x: -x[1])
+tipos_vocab = [t for t, _ in geral]
+tipo_idx = {t: i for i, t in enumerate(tipos_vocab)}
+assert len(tipos_vocab) == 38 and tipos_vocab[0] == "PASSAGEIRO"
+top10_geral = geral[:10]
+soma_top10 = sum(q for _, q in top10_geral)
+assert soma_top10 == 84_702_589
+assert round(100 * soma_top10 / TOTAL_ESPERADO, 1) == 91.9
+assert dict(top10_geral)["PASSAGEIRO"] == 28_070_960
+assert dict(top10_geral)["NAO INFORMADO"] == 17_194_616
+assert dict(top10_geral)["AUTOMOVEL"] == 12_652_194
+
+# cobertura do eixo híbrido (números da Resposta)
+cov = con.execute(f"""
+    SELECT
+      SUM(CASE WHEN TIPO_VEICULO IS NOT NULL AND TRIM(TIPO_VEICULO) <> ''
+               THEN 1 ELSE 0 END),
+      SUM(CASE WHEN (TIPO_VEICULO IS NULL OR TRIM(TIPO_VEICULO) = '')
+                    AND ESPECIE IS NOT NULL AND TRIM(ESPECIE) <> ''
+               THEN 1 ELSE 0 END),
+      SUM(CASE WHEN (TIPO_VEICULO IS NULL OR TRIM(TIPO_VEICULO) = '')
+                    AND (ESPECIE IS NULL OR TRIM(ESPECIE) = '')
+               THEN 1 ELSE 0 END)
+    FROM read_parquet('{BASE}')
+""").fetchone()
+assert tuple(int(x) for x in cov) == (28_967_629, 46_320_085, 16_927_874)
+
+top10_set = {p: {t for t, _ in sorted(lst, key=lambda x: -x[1])[:10]}
+             for p, lst in por_periodo.items()}
+
+# ---- 4) top5 causas por (período, tipo) — uma consulta por nível ----
+def top_causas(nivel: str):
+    """[(periodo, tipo, causa, qtd)] — top5 causas por (período, tipo)."""
+    if nivel == "":
+        sql = f"""
+            SELECT {TIPO_EF} AS tipo, DESCRICAO_ABRVIADA AS causa,
+                   COUNT(*) AS q
+            FROM read_parquet('{BASE}') GROUP BY 1, 2
+            QUALIFY ROW_NUMBER() OVER (PARTITION BY {TIPO_EF}
+                                       ORDER BY COUNT(*) DESC) <= 5"""
+        df = con.execute(sql).df()
+        return [("", t, c, int(q)) for t, c, q in
+                zip(df["tipo"], df["causa"], df["q"])]
+    if nivel == "ano":
+        sql = f"""
+            SELECT ANO, {TIPO_EF} AS tipo, DESCRICAO_ABRVIADA AS causa,
+                   COUNT(*) AS q
+            FROM read_parquet('{BASE}') GROUP BY 1, 2, 3
+            QUALIFY ROW_NUMBER() OVER (PARTITION BY ANO, {TIPO_EF}
+                                       ORDER BY COUNT(*) DESC) <= 5"""
+        df = con.execute(sql).df()
+        return [(str(int(a)), t, c, int(q)) for a, t, c, q in
+                zip(df["ANO"], df["tipo"], df["causa"], df["q"])]
+    if nivel == "mes":
+        sql = f"""
+            SELECT ANO, MES, {TIPO_EF} AS tipo, DESCRICAO_ABRVIADA AS causa,
+                   COUNT(*) AS q
+            FROM read_parquet('{BASE}') GROUP BY 1, 2, 3, 4
+            QUALIFY ROW_NUMBER() OVER (PARTITION BY ANO, MES, {TIPO_EF}
+                                       ORDER BY COUNT(*) DESC) <= 5"""
+        df = con.execute(sql).df()
+        return [(f"{int(a)}-{ORDEM_MES[m]}", t, c, int(q))
+                for a, m, t, c, q in zip(df["ANO"], df["MES"], df["tipo"],
+                                         df["causa"], df["q"])]
+    if nivel == "sem":
+        sql = f"""
+            SELECT ANO, MES, SEMANA_DO_MES AS sem, {TIPO_EF} AS tipo,
+                   DESCRICAO_ABRVIADA AS causa, COUNT(*) AS q
+            FROM read_parquet('{BASE}') GROUP BY 1, 2, 3, 4, 5
+            QUALIFY ROW_NUMBER() OVER (
+                PARTITION BY ANO, MES, SEMANA_DO_MES, {TIPO_EF}
+                ORDER BY COUNT(*) DESC) <= 5"""
+        df = con.execute(sql).df()
+        return [(f"{int(a)}-{ORDEM_MES[m]}-{int(s)}", t, c, int(q))
+                for a, m, s, t, c, q in zip(df["ANO"], df["MES"], df["sem"],
+                                            df["tipo"], df["causa"], df["q"])]
+    sql = f"""
+        SELECT ANO, MES, SEMANA_DO_MES AS sem, DAY(DATA_INFRACAO) AS dia,
+               {TIPO_EF} AS tipo, DESCRICAO_ABRVIADA AS causa, COUNT(*) AS q
+        FROM read_parquet('{BASE}') GROUP BY 1, 2, 3, 4, 5, 6
+        QUALIFY ROW_NUMBER() OVER (
+            PARTITION BY ANO, MES, SEMANA_DO_MES, DAY(DATA_INFRACAO),
+                        {TIPO_EF}
+            ORDER BY COUNT(*) DESC) <= 5"""
+    df = con.execute(sql).df()
+    return [(f"{int(a)}-{ORDEM_MES[m]}-{int(s)}-{int(d)}", t, c, int(q))
+            for a, m, s, d, t, c, q in
+            zip(df["ANO"], df["MES"], df["sem"], df["dia"], df["tipo"],
+                df["causa"], df["q"])]
+
+causas_pt = defaultdict(list)
+for nivel in ("", "ano", "mes", "sem", "dia"):
+    linhas = top_causas(nivel)
+    for p, t, c, q in linhas:
+        if t in top10_set.get(p, ()):
+            causas_pt[(p, t)].append((c, q))
+    print(f"  causas nível {nivel or 'geral'}: {len(linhas):,} linhas")
+
+faltantes = [(p, t) for p, ts in top10_set.items() for t in ts
+             if (p, t) not in causas_pt]
+assert not faltantes, f"tipos sem causas: {faltantes[:5]}"
+for k in causas_pt:
+    causas_pt[k].sort(key=lambda x: -x[1])
+    causas_pt[k] = causas_pt[k][:5]
+
+# ---- 5) monta o JSON final (vocabulário + períodos) ----
+cvocab = sorted({c for arr in causas_pt.values() for c, _ in arr})
+cidx = {c: i for i, c in enumerate(cvocab)}
+
+p_json = {}
+for p in sorted(tot_periodo):
+    lst = sorted(por_periodo[p], key=lambda x: -x[1])[:10]
+    tflat, cdict = [], {}
+    for t, q in lst:
+        ti = tipo_idx[t]
+        tflat += [ti, int(q)]
+        cdict[str(ti)] = [v for c, q2 in causas_pt.get((p, t), [])
+                          for v in (cidx[c], int(q2))]
+    p_json[p] = {"q": int(tot_periodo[p]), "t": tflat, "c": cdict}
+
+G3 = {"tv": tipos_vocab, "cv": cvocab, "p": p_json}
+g3_json = json.dumps(G3, ensure_ascii=False, separators=(",", ":"))
+
+assert set(G3["p"]) == chaves_g2
+assert G3["p"][""]["q"] == TOTAL_ESPERADO
+assert len(G3["tv"]) == 38 and len(G3["cv"]) == len(set(G3["cv"]))
+assert len(g3_json) < 30_000_000, f"JSON do g3 grande: {len(g3_json):,}"
+print(f"G3: {len(G3['p'])} períodos · {len(G3['tv'])} tipos · "
+      f"{len(G3['cv'])} causas · JSON {len(g3_json):,} chars")
+'''
+
+CODE_G3_HTML = '''\
+import json
+import re
+
+MSG_G3 = "PASSAGEIRO lidera com 30% das multas — top10 de tipos × causas por período"
+LEG_G3_1 = ("Barras: % do período — eixo híbrido TIPO_VEICULO (2022–2025) + "
+            "ESPECIE (2007–2021); NAO INFORMADO sem dado (18,4%).")
+LEG_G3_2 = ("Menus Ano→Mês→Semana→Dia recortam o período; clique no tipo "
+            "abre as top5 causas dele naquele período · 92.215.588 multas.")
+
+# --- visão inicial: top10 tipos de 2007–2025 (padrão titulo()/pct()) ---
+flat0 = G3["p"][""]["t"]
+pares0 = list(zip(flat0[0::2], flat0[1::2]))[:10]
+disp0 = pares0[::-1]
+nomes0 = [G3["tv"][i] for i, _ in disp0]
+vals0 = [100 * q / G3["p"][""]["q"] for _, q in disp0]
+fig3 = go.Figure(go.Bar(
+    x=vals0, y=nomes0, orientation="h",
+    text=[f"{v:.2f}%".replace(".", ",") for v in vals0],
+    textposition="outside", textfont=dict(color="#922b21"),
+    customdata=np.stack([nomes0,
+                         [br(q) for _, q in disp0],
+                         [f"{v:.2f}%".replace(".", ",") for v in vals0]],
+                        axis=-1),
+    marker=dict(color=vals0, colorscale=[[0, "#f5b7b1"], [1, "#922b21"]],
+                colorbar=dict(title="%", thickness=12, len=0.5,
+                              tickformat=".2f")),
+    hovertemplate=("<b>%{customdata[0]}</b><br>%{customdata[2]} do período<br>"
+                   "Multas: %{customdata[1]}<extra></extra>"),
+))
+fig3.update_layout(
+    title=titulo(MSG_G3, LEG_G3_1, LEG_G3_2),
+    xaxis=dict(title="% do período (2007–2025)", ticksuffix="%",
+               tickformat=".2f", gridcolor="#e8e8e8", rangemode="tozero",
+               range=[0, max(vals0) * 1.18]),
+    yaxis=dict(title="", automargin=True),
+    plot_bgcolor="white", height=660, margin=dict(l=210, r=70, t=130, b=60),
+)
+assert nomes0[-1] == "PASSAGEIRO" and abs(vals0[-1] - 30.44) < 0.01
+assert len(nomes0) == 10
+assert abs(sum(vals0) - 91.86) < 0.05
+
+# --- HTML interativo: menus de período + clique no tipo → causas ---
+html_str = fig3.to_html(include_plotlyjs=True, full_html=True,
+                        config={"displayModeBar": False})
+assert "</body>" in html_str
+if "charset" not in html_str:
+    html_str = html_str.replace("<head>", "<head><meta charset=\\"utf-8\\">", 1)
+div_id = re.search(r\'<div id="([^"]+)"\', html_str).group(1)
+
+MENUS = {
+    "anos": [[i["k"], i["rot"]] for i in DADOS["anos"]],
+    "meses": {a: [[i["k"], i["rot"]] for i in lst]
+              for a, lst in DADOS["meses"].items()},
+    "semanas": {k: [[i["k"], i["rot"]] for i in lst]
+                for k, lst in DADOS["semanas"].items()},
+    "dias": {k: [[i["k"], i["rot"]] for i in lst]
+             for k, lst in DADOS["dias"].items()},
+    "NOMES": NOMES_MES,
+}
+
+CSS = ("#g3_ui{font:600 14px/26px 'Open Sans',Helvetica,Arial,sans-serif;"
+       "color:#922b21;margin:4px 2px 2px 2px;}"
+       "#g3_menus label{margin-right:14px;}"
+       "#g3_menus select{font:inherit;border:1px solid #c0392b;"
+       "border-radius:4px;padding:2px 6px;color:#922b21;background:#fff;}"
+       "#g3_info{float:right;color:#555;font-weight:600;}"
+       "#g3_crumb{margin:6px 0 2px 0;min-height:26px;}"
+       "#g3_crumb .gc{background:#fff;border:1px solid #c0392b;"
+       "color:#922b21;border-radius:4px;padding:2px 10px;cursor:pointer;"
+       "font:inherit;}"
+       "#g3_crumb .gc:hover{background:#c0392b;color:#fff;}"
+       ".g3-hint{color:#7f8c8d;font-weight:600;}")
+
+JS_TMPL = """(function () {
+  const G3 = __G3__;
+  const D2 = __MENUS__;
+  const DIV = __DIV__;
+  const MSG = __MSG__;
+  const LEG1 = __LEG1__;
+  const LEG2 = __LEG2__;
+  let per = {a: '', m: '', s: '', d: ''};
+  let tipoSel = null;
+
+  function brInt(v) { return v.toLocaleString('pt-BR'); }
+  function brPct(v) {
+    return v.toLocaleString('pt-BR', {minimumFractionDigits: 2,
+                                      maximumFractionDigits: 2}) + '%';
+  }
+  function pk() {
+    return [per.a, per.m, per.s, per.d].filter(Boolean).join('-');
+  }
+  function labelPeriodo() {
+    const p = [];
+    if (per.a) { p.push(per.a); }
+    if (per.m) { p.push(D2.NOMES[per.m]); }
+    if (per.s) {
+      const ws = D2.semanas[per.a + '-' + per.m] || [];
+      const w = ws.find(function (x) { return x[0] === per.s; });
+      p.push(w ? w[1] : 'Semana ' + per.s);
+    }
+    if (per.d) {
+      const ds = D2.dias[per.a + '-' + per.m + '-' + per.s] || [];
+      const dd = ds.find(function (x) { return x[0] === per.d; });
+      p.push(dd ? dd[1] : 'Dia ' + per.d);
+    }
+    return p.length ? p.join(' · ') : 'Todos os anos (2007–2025)';
+  }
+  function fill(sel, opts, ph) {
+    while (sel.firstChild) { sel.removeChild(sel.firstChild); }
+    const o0 = document.createElement('option');
+    o0.value = ''; o0.textContent = ph;
+    sel.appendChild(o0);
+    opts.forEach(function (x) {
+      const o = document.createElement('option');
+      o.value = x[0]; o.textContent = x[1];
+      sel.appendChild(o);
+    });
+    sel.disabled = opts.length === 0;
+  }
+  function tiposTop(P) {
+    const out = [];
+    for (let i = 0; i < P.t.length; i += 2) {
+      out.push([P.t[i], P.t[i + 1]]);
+    }
+    return out;
+  }
+  function render() {
+    const P = G3.p[pk()];
+    let trace, info, crumb;
+    if (tipoSel === null) {
+      const top = tiposTop(P).slice(0, 10).reverse();
+      const xv = top.map(function (x) { return 100 * x[1] / P.q; });
+      const cd = top.map(function (x, i) {
+        return [G3.tv[x[0]], brInt(x[1]), brPct(xv[i]), x[0]];
+      });
+      trace = {
+        type: 'bar', orientation: 'h',
+        x: xv,
+        y: top.map(function (x) { return G3.tv[x[0]]; }),
+        text: xv.map(brPct), textposition: 'outside',
+        textfont: {color: '#922b21'},
+        customdata: cd,
+        marker: {color: xv, colorscale: [[0, '#f5b7b1'], [1, '#922b21']],
+                 colorbar: {title: '%', thickness: 12, len: 0.5,
+                            tickformat: '.2f'}},
+        hovertemplate: '<b>%{customdata[0]}</b><br>%{customdata[2]} do período' +
+                       '<br>Multas: %{customdata[1]}<extra></extra>'
+      };
+      const soma = top.reduce(function (s, x) { return s + x[1]; }, 0);
+      info = brInt(P.q) + ' multas no período · top10 = ' + brInt(soma) +
+             ' (' + brPct(100 * soma / P.q) + ')';
+      crumb = '<span class="g3-hint">Clique numa barra para ver as ' +
+              'multas (causas) daquele tipo</span>';
+    } else {
+      const hit = tiposTop(P).find(function (x) { return x[0] === tipoSel; });
+      if (!hit) { tipoSel = null; render(); return; }
+      const nomeTipo = G3.tv[tipoSel];
+      const cf = (P.c && P.c[String(tipoSel)]) || [];
+      const causas = [];
+      for (let i = 0; i < cf.length; i += 2) {
+        causas.push([cf[i], cf[i + 1]]);
+      }
+      causas.reverse();
+      const xv = causas.map(function (x) { return 100 * x[1] / hit[1]; });
+      const cd = causas.map(function (x, i) {
+        return [G3.cv[x[0]], brInt(x[1]), brPct(xv[i])];
+      });
+      trace = {
+        type: 'bar', orientation: 'h',
+        x: xv,
+        y: causas.map(function (x) { return G3.cv[x[0]]; }),
+        text: xv.map(brPct), textposition: 'outside',
+        textfont: {color: '#922b21'},
+        customdata: cd,
+        marker: {color: xv, colorscale: [[0, '#f5b7b1'], [1, '#922b21']],
+                 colorbar: {title: '%', thickness: 12, len: 0.5,
+                            tickformat: '.2f'}},
+        hovertemplate: '<b>%{customdata[0]}</b><br>%{customdata[2]} do tipo' +
+                       '<br>Multas: %{customdata[1]}<extra></extra>'
+      };
+      info = nomeTipo + ': ' + brInt(hit[1]) + ' multas (' +
+             brPct(100 * hit[1] / P.q) + ' do período) · top5 causas = ' +
+             brPct(xv.reduce(function (s, v) { return s + v; }, 0)) +
+             ' do tipo';
+      crumb = '<button class="gc" id="g3_back">‹ Voltar aos tipos</button>' +
+              ' <b>' + nomeTipo + '</b> — causas em ' + labelPeriodo();
+    }
+    const layout = {
+      title: {text: '<b>' + MSG + '</b><br><sup>' + LEG1 + '<br>' + LEG2 +
+                    '</sup>',
+              x: 0.01, xanchor: 'left', y: 0.95, yanchor: 'top',
+              automargin: true, font: {size: 16, color: '#1a1a1a'}},
+      xaxis: {title: tipoSel === null ? '% do período' : '% do total do tipo',
+              ticksuffix: '%', tickformat: '.2f', gridcolor: '#e8e8e8',
+              rangemode: 'tozero',
+              range: [0, Math.max.apply(null, trace.x.concat([0.0001])) *
+                        1.18]},
+      yaxis: {title: '', automargin: true, categoryorder: 'array',
+              categoryarray: trace.y.slice()},
+      plot_bgcolor: 'white', height: 660,
+      margin: {l: 210, r: 70, t: 130, b: 60}
+    };
+    Plotly.react(DIV, [trace], layout,
+                 {displayModeBar: false, responsive: true});
+    document.getElementById('g3_info').textContent = info;
+    document.getElementById('g3_crumb').innerHTML = crumb;
+    const back = document.getElementById('g3_back');
+    if (back) {
+      back.addEventListener('click', function () {
+        tipoSel = null;
+        render();
+      });
+    }
+  }
+
+  const ui = document.getElementById('g3_ui');
+  ui.innerHTML =
+    '<div id="g3_menus">' +
+    '<label>Ano <select id="g3_ano"></select></label>' +
+    '<label>Mês <select id="g3_mes" disabled></select></label>' +
+    '<label>Semana <select id="g3_sem" disabled></select></label>' +
+    '<label>Dia <select id="g3_dia" disabled></select></label>' +
+    '<span id="g3_info"></span></div>' +
+    '<div id="g3_crumb"></div>';
+  const selAno = document.getElementById('g3_ano');
+  const selMes = document.getElementById('g3_mes');
+  const selSem = document.getElementById('g3_sem');
+  const selDia = document.getElementById('g3_dia');
+  fill(selAno, D2.anos, 'Todos os anos');
+  selAno.addEventListener('change', function () {
+    per = {a: selAno.value, m: '', s: '', d: ''};
+    fill(selMes, per.a ? (D2.meses[per.a] || []) : [], 'Todos os meses');
+    fill(selSem, [], 'Todas');
+    fill(selDia, [], 'Todos');
+    render();
+  });
+  selMes.addEventListener('change', function () {
+    per.m = selMes.value; per.s = ''; per.d = '';
+    fill(selSem, (D2.semanas[per.a + '-' + per.m] || []), 'Todas');
+    fill(selDia, [], 'Todos');
+    render();
+  });
+  selSem.addEventListener('change', function () {
+    per.s = selSem.value; per.d = '';
+    fill(selDia, (D2.dias[per.a + '-' + per.m + '-' + per.s] || []),
+         'Todos');
+    render();
+  });
+  selDia.addEventListener('change', function () {
+    per.d = selDia.value;
+    render();
+  });
+  document.getElementById(DIV).on('plotly_click', function (ev) {
+    const p = ev.points && ev.points[0];
+    if (!p || !p.customdata) { return; }
+    if (tipoSel === null && p.customdata.length >= 4) {
+      tipoSel = p.customdata[3];
+      render();
+    }
+  });
+  render();
+})();"""
+
+JS = (JS_TMPL
+      .replace("__G3__", g3_json)
+      .replace("__MENUS__", json.dumps(MENUS, ensure_ascii=False,
+                                       separators=(",", ":")))
+      .replace("__DIV__", json.dumps(div_id))
+      .replace("__MSG__", json.dumps(MSG_G3))
+      .replace("__LEG1__", json.dumps(LEG_G3_1))
+      .replace("__LEG2__", json.dumps(LEG_G3_2)))
+
+html_str = html_str.replace(
+    f\'<div id="{div_id}"\',
+    f\'<style>{CSS}</style><div id="g3_ui"></div><div id="{div_id}">\',
+    1,
+)
+html_str = html_str.replace("</body>", f"<script>{JS}</script></body>", 1)
+
+out = DIR_RESULTADOS / "g3_top10_veiculos.html"
+out.write_text(html_str, encoding="utf-8")
+try:
+    fig3.write_image(DIR_RESULTADOS / "g3_top10_veiculos.png",
+                     width=1600, height=900, scale=2)
+except Exception:
+    print("PNG não gerado (kaleido precisa de Chrome instalado); HTML salvo.")
+
+assert out.exists() and out.stat().st_size < 40_000_000, "HTML do g3 fora do limite"
+for marca in ("plotly_click", "g3_ui", "g3_ano", "g3_back", "Plotly.react"):
+    assert marca in html_str, f"HTML sem {marca}"
+from IPython.display import IFrame, display
+print(f"resultados/: {out.name} ({out.stat().st_size:,} bytes)")
+display(IFrame(src="../resultados/g3_top10_veiculos.html",
+               width="100%", height=780))
+'''
+
 MD_FECHO = """\
 ## Fechamento da Parte 6
 
@@ -538,6 +1051,7 @@ MD_FECHO = """\
 |---|---|---|---|
 | 1 | Quais são as 10 causas de multa que mais ocorrem? | Velocidade = 52% das multas; top10 concentra 71,7% | `resultados/g1_top10_multas.html` |
 | 2 | Como as multas se distribuem do ano ao dia? | % do período pai; drill ano→mês→semana→dia por clique | `resultados/g2_drill_temporal.html` |
+| 3 | Quais são os top10 tipos de veículo e as causas de cada um em qualquer período? | PASSAGEIRO = 30,4%; top10 = 91,9%; clique no tipo → top5 causas do período | `resultados/g3_top10_veiculos.html` |
 
 HTML **autocontido** (`include_plotlyjs=True` — abre offline, sem CDN), no
 mesmo padrão da referência. O PNG é gerado quando há Chrome para o `kaleido`;
@@ -559,6 +1073,9 @@ def main() -> None:
         nbformat.v4.new_markdown_cell(MD_G2),
         nbformat.v4.new_code_cell(CODE_G2_DATA),
         nbformat.v4.new_code_cell(CODE_G2_HTML),
+        nbformat.v4.new_markdown_cell(MD_G3),
+        nbformat.v4.new_code_cell(CODE_G3_DATA),
+        nbformat.v4.new_code_cell(CODE_G3_HTML),
         nbformat.v4.new_markdown_cell(MD_FECHO),
     ]
     nb = nbformat.v4.new_notebook(cells=cells)

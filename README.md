@@ -43,7 +43,8 @@ ingestão de fontes brutas → normalização → **base analítica padronizada*
 │   └── dashboard.py                # dashboard Dash E2: drill por clique (4 abas)
 ├── resultados/                # gráficos exportados (HTML autocontido — versionado)
 │   ├── g1_top10_multas.html   # g1: top10 causas 2007–2025
-│   └── g2_drill_temporal.html # g2: drill ano→mês→semana→dia (% do período pai)
+│   ├── g2_drill_temporal.html # g2: drill ano→mês→semana→dia (% do período pai)
+│   └── g3_top10_veiculos.html # g3: top10 tipos × causas por período (menus)
 ├── docs/                      # análise de variáveis, catálogo e interações
 ├── dados_brutos/             # fonte: 19 .csv.gz + partes + checksums + README
 ├── dados_tratados/           # base analítica (Parquet) + relatórios (versionados)
@@ -116,6 +117,7 @@ salvar e é exportado **autocontido** (`include_plotlyjs=True`, abre offline) po
 |---|---------|---------|
 | 1 | Top 10 causas que mais ocorrem — todos os anos (2007–2025); velocidade = 52% | `resultados/g1_top10_multas.html` |
 | 2 | Drill interativo ano→mês→semana→dia; **% do período pai** (cada nível soma 100%) | `resultados/g2_drill_temporal.html` |
+| 3 | Top10 tipos de veículo (eixo híbrido TIPO+ESPÉCIE); clique no tipo → top5 causas do período | `resultados/g3_top10_veiculos.html` |
 
 ## Regras de dados (decisões de negócio)
 
