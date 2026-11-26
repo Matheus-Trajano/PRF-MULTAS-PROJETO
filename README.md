@@ -39,8 +39,7 @@ ingestão de fontes brutas → normalização → **base analítica padronizada*
 ├── notebooks/
 │   ├── 00_pipeline_completo.ipynb  # TODOS os scripts + validações executáveis
 │   ├── 05_eda_plotly.ipynb         # dashboard Plotly: filtros + cascata (Etapa E)
-│   ├── 09_parte6_graficos.ipynb    # Parte 6: gráficos Plotly (padrão da referência)
-│   └── _build_graficos.py          # builder que gera/executa o notebook 09
+│   └── 09_parte6_graficos.ipynb    # Parte 6: gráficos Plotly (G1–G3) — fonte única
 ├── apps/
 │   └── dashboard.py                # dashboard Dash E2: drill por clique (4 abas)
 ├── resultados/                # gráficos exportados (HTML autocontido — versionado)
@@ -81,10 +80,8 @@ gzip -6 dados_brutos/infracoes_*.csv
 # Dashboard Dash (E2 — drill por clique; http://0.0.0.0:8050)
 .venv/bin/python apps/dashboard.py
 
-# Parte 6 — gráficos (gera 09_parte6_graficos.ipynb + resultados/*.html)
-.venv/bin/python notebooks/_build_graficos.py
-
-# Notebooks (validações em segundos; recria os scripts via %%writefile)
+# Notebooks são a FONTE ÚNICA (sem builders): abra e Execute All
+# de cima a baixo — cada célula tem cabeçalho com o que faz.
 .venv/bin/pip install notebook        # ou abrir no VS Code / Colab
 .venv/bin/jupyter notebook notebooks/00_pipeline_completo.ipynb
 .venv/bin/jupyter notebook notebooks/05_eda_plotly.ipynb   # EDA interativa (Etapa E)
